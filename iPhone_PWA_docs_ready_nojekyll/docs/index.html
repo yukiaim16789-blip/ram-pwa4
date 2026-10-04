@@ -1988,12 +1988,12 @@
         <div id="kakuhenCharWrapper" class="kakuhen-char-wrapper">
           <!-- JSで待機画面のパーツコンテナをクローン挿入 -->
           <div id="kakuhenChainBall" class="kakuhen-chain-ball" aria-label="chain and ball swing">
-            <img id="kakuhenChain" class="chain-img" src="chain.png" alt="chain">
-            <img id="kakuhenBall" class="ball-img" src="Iron ball.png" alt="鎖付き鉄球">
+            <img id="kakuhenChain" class="chain-img" src="assets/chain.png" alt="chain">
+            <img id="kakuhenBall" class="ball-img" src="assets/Iron ball.png" alt="鎖付き鉄球">
           </div>
         </div>
         <div class="kakuhen-effect-wrapper">
-          <img id="kakuhenEffectImg" class="kakuhen-effect-img" src="Effoct.png" alt="Effoct">
+          <img id="kakuhenEffectImg" class="kakuhen-effect-img" src="assets/Effoct.png" alt="Effoct">
           <div class="kakuhen-text-overlay">確変</div>
         </div>
       </div>
@@ -2069,48 +2069,48 @@
         <canvas class="building-bg-canvas" id="buildingBgCanvas"></canvas>
 
         <div class="momonga-container is-locked" id="momongaContainer">
-          <img src="tail_2.png" id="part-tail" class="draggable-part" data-key="tail" title="尻尾" style="z-index: 1;">
+          <img src="assets/tail_2.png" id="part-tail" class="draggable-part" data-key="tail" title="尻尾" style="z-index: 1;">
           
           <div class="anim-head-group" style="z-index: 5;">
-            <img src="ear_l_2.png" id="part-ear_l" class="draggable-part" data-key="ear_l" title="左耳" style="z-index: 2;">
-            <img src="ear_r_2.png" id="part-ear_r" class="draggable-part" data-key="ear_r" title="右耳" style="z-index: 3;">
-            <img src="body_no_eye.png" id="part-body" class="draggable-part" data-key="body" title="体・顔" style="z-index: 5;">
+            <img src="assets/ear_l_2.png" id="part-ear_l" class="draggable-part" data-key="ear_l" title="左耳" style="z-index: 2;">
+            <img src="assets/ear_r_2.png" id="part-ear_r" class="draggable-part" data-key="ear_r" title="右耳" style="z-index: 3;">
+            <img src="assets/body_no_eye.png" id="part-body" class="draggable-part" data-key="body" title="体・顔" style="z-index: 5;">
 
             <!-- 口パーツ -->
-            <img src="mouth_close.png" id="part-mouth-close" class="draggable-part" data-key="mouth" title="口(閉)" style="z-index: 15; display: none;">
-            <img src="mouth_open.png" id="part-mouth-open" class="draggable-part" data-key="mouth" title="口(開)" style="z-index: 15; display: block;">
+            <img src="assets/mouth_close.png" id="part-mouth-close" class="draggable-part" data-key="mouth" title="口(閉)" style="z-index: 15; display: none;">
+            <img src="assets/mouth_open.png" id="part-mouth-open" class="draggable-part" data-key="mouth" title="口(開)" style="z-index: 15; display: block;">
 
-            <img src="hair_2.png" id="part-hair" class="draggable-part" data-key="hair" title="髪" style="z-index: 6;">
-            <img src="headband_2.png" id="part-headband" class="draggable-part" data-key="headband" title="ヘッドドレス" style="z-index: 7;">
+            <img src="assets/hair_2.png" id="part-hair" class="draggable-part" data-key="hair" title="髪" style="z-index: 6;">
+            <img src="assets/headband_2.png" id="part-headband" class="draggable-part" data-key="headband" title="ヘッドドレス" style="z-index: 7;">
 
             <!-- 目パーツ (eye_open & eye_close) -->
-            <img src="eye_open.png" id="part-eye" class="draggable-part" data-key="eye" title="目" style="z-index: 20;">
-            <img src="eye_close.png" id="part-eye-close" class="draggable-part" data-key="eye" title="閉じ目" style="z-index: 21; display: none;">
-            <img src="Fine-grained.png" id="part-eye-fine" class="draggable-part idle-state-eye" data-key="eye" title="眠そうな目（細め）" style="z-index: 22; display: none;">
-            <img src="Half-open eyes.png" id="part-eye-half" class="draggable-part idle-state-eye" data-key="eye" title="半目" style="z-index: 23; display: none;">
+            <img src="assets/eye_open.png" id="part-eye" class="draggable-part" data-key="eye" title="目" style="z-index: 20;">
+            <img src="assets/eye_close.png" id="part-eye-close" class="draggable-part" data-key="eye" title="閉じ目" style="z-index: 21; display: none;">
+            <img src="assets/Fine-grained.png" id="part-eye-fine" class="draggable-part idle-state-eye" data-key="eye" title="眠そうな目（細め）" style="z-index: 22; display: none;">
+            <img src="assets/Half-open eyes.png" id="part-eye-half" class="draggable-part idle-state-eye" data-key="eye" title="半目" style="z-index: 23; display: none;">
 
             <!-- マウスカーソル反応専用：まぶた＋眼球 -->
-            <img src="01_まぶた.png" id="part-eye-gaze-lid" class="fixed-part" title="カーソル反応・まぶた" style="z-index: 24; display: none;">
-            <img src="02_眼球.png" id="part-eye-gaze-ball" class="fixed-part" title="カーソル反応・眼球" style="z-index: 25; display: none;">
+            <img src="assets/01_まぶた.png" id="part-eye-gaze-lid" class="fixed-part" title="カーソル反応・まぶた" style="z-index: 24; display: none;">
+            <img src="assets/02_眼球.png" id="part-eye-gaze-ball" class="fixed-part" title="カーソル反応・眼球" style="z-index: 25; display: none;">
           </div>
 
-          <img src="hand_r_2.png" id="part-hand_r" class="draggable-part" data-key="hand_r" title="右手(何も持っていない手)" style="z-index: 8;">
-          <img src="hand_l_2.png" id="part-hand_l" class="draggable-part" data-key="hand_l" title="左手(焼き芋)" style="z-index: 9;">
+          <img src="assets/hand_r_2.png" id="part-hand_r" class="draggable-part" data-key="hand_r" title="右手(何も持っていない手)" style="z-index: 8;">
+          <img src="assets/hand_l_2.png" id="part-hand_l" class="draggable-part" data-key="hand_l" title="左手(焼き芋)" style="z-index: 9;">
 
-          <img src="leg_c.png" id="part-leg_c" class="draggable-part" data-key="leg_c" title="右足" style="z-index: 10;">
-          <img src="leg_l.png" id="part-leg_l" class="draggable-part" data-key="leg_l" title="左足" style="z-index: 10;">
+          <img src="assets/leg_c.png" id="part-leg_c" class="draggable-part" data-key="leg_c" title="右足" style="z-index: 10;">
+          <img src="assets/leg_l.png" id="part-leg_l" class="draggable-part" data-key="leg_l" title="左足" style="z-index: 10;">
 
           <!-- 😲 強い口調（「おい」など）に反応するびっくり演出。
                応答音声が終わると自動的に非表示に戻ります。 -->
           <div class="strong-tone-reaction" id="strongToneReaction" aria-hidden="true">
-            <img class="strong-reaction-eye" id="strongReactionEye" src="01_.png" alt="">
-            <img class="strong-reaction-sweat-left" id="strongReactionSweatLeft" src="04_.png" alt="">
-            <img class="strong-reaction-mark" id="strongReactionMark" src="05_.png" alt="">
-            <img class="strong-reaction-lightning-top" id="strongReactionLightningTop" src="06_.png" alt="">
-            <img class="strong-reaction-sweat-right" id="strongReactionSweatRight" src="08_.png" alt="">
-            <img class="strong-reaction-sweat-right-bottom" id="strongReactionSweatRightBottom" src="09_.png" alt="">
-            <img class="strong-reaction-lightning-left-bottom" id="strongReactionLightningLeftBottom" src="10_.png" alt="">
-            <img class="strong-reaction-lightning-right-bottom" id="strongReactionLightningRightBottom" src="14_.png" alt="">
+            <img class="strong-reaction-eye" id="strongReactionEye" src="assets/01_.png" alt="">
+            <img class="strong-reaction-sweat-left" id="strongReactionSweatLeft" src="assets/04_.png" alt="">
+            <img class="strong-reaction-mark" id="strongReactionMark" src="assets/05_.png" alt="">
+            <img class="strong-reaction-lightning-top" id="strongReactionLightningTop" src="assets/06_.png" alt="">
+            <img class="strong-reaction-sweat-right" id="strongReactionSweatRight" src="assets/08_.png" alt="">
+            <img class="strong-reaction-sweat-right-bottom" id="strongReactionSweatRightBottom" src="assets/09_.png" alt="">
+            <img class="strong-reaction-lightning-left-bottom" id="strongReactionLightningLeftBottom" src="assets/10_.png" alt="">
+            <img class="strong-reaction-lightning-right-bottom" id="strongReactionLightningRightBottom" src="assets/14_.png" alt="">
           </div>
         </div>
       </div>
@@ -2246,31 +2246,31 @@
       </label>
       <label>
         抽選用画像1 (回転・結果表示用):
-        <input type="text" id="pachinkoImg1Path" value="welcome home.png">
+        <input type="text" id="pachinkoImg1Path" value="assets/welcome home.png">
       </label>
       <label>
         抽選用画像2 (大当り・Swing演出用):
-        <input type="text" id="pachinkoImg2Path" value="stand-by.png">
+        <input type="text" id="pachinkoImg2Path" value="assets/stand-by.png">
       </label>
       <label>
         演出エフェクト画像ファイルパス:
-        <input type="text" id="pachinkoEffectImgPath" value="Effoct.png">
+        <input type="text" id="pachinkoEffectImgPath" value="assets/Effoct.png">
       </label>
       <label>
         確変時の鎖＋鉄球画像:
-        <input type="text" id="pachinkoIronBallPath" value="Iron ball.png" placeholder="例: Iron ball.png">
+        <input type="text" id="pachinkoIronBallPath" value="assets/Iron ball.png" placeholder="例: Iron ball.png">
       </label>
       <label>
         通常時演出背景画像:
-        <input type="text" id="pachinkoBgImgPath" value="background.png">
+        <input type="text" id="pachinkoBgImgPath" value="assets/background.png">
       </label>
       <label>
         確変演出背景画像:
-        <input type="text" id="pachinkoProbBgImgPath" value="Probability Variation.png">
+        <input type="text" id="pachinkoProbBgImgPath" value="assets/Probability Variation.png">
       </label>
       <label>
         結果時BGMファイル名/パス:
-        <input type="text" id="pachinkoBgmPath" value="bgm.mp3" placeholder="例: bgm.mp3 / bgm.wav">
+        <input type="text" id="pachinkoBgmPath" value="assets/bgm.mp3" placeholder="例: bgm.mp3 / bgm.wav">
       </label>
       <div class="controls-row">
         <span>⏱️ 定期自動抽選:</span>
@@ -2687,8 +2687,8 @@
     <label>
       メインメッセージを選択:
       <select id="mainPresetSelect">
-        <option value="すぐ戻ります" data-voice="talk_01.wav" selected>すぐ戻ります</option>
-        <option value="ご飯かお風呂中です" data-voice="talk_02.wav">ご飯かお風呂中です</option>
+        <option value="すぐ戻ります" data-voice="assets/talk_01.wav" selected>すぐ戻ります</option>
+        <option value="ご飯かお風呂中です" data-voice="assets/talk_02.wav">ご飯かお風呂中です</option>
         <option value="AFK / 待機中">AFK / 待機中</option>
         <option value="準備中...">準備中...</option>
         <option value="custom">✏️ 自由入力</option>
@@ -4676,7 +4676,7 @@
     }
 
     function playResultBGM() {
-      const bgmPath = pachinkoBgmPath.value.trim() || 'bgm.mp3';
+      const bgmPath = pachinkoBgmPath.value.trim() || 'assets/bgm.mp3';
       if (resultBgmAudio) {
         resultBgmAudio.pause();
         resultBgmAudio.currentTime = 0;
@@ -4727,13 +4727,13 @@
         return;
       }
 
-      const bgImg = pachinkoBgImgPathInput.value.trim() || 'background.png';
-      const probBgImg = pachinkoProbBgImgPathInput.value.trim() || 'Probability Variation.png';
+      const bgImg = pachinkoBgImgPathInput.value.trim() || 'assets/background.png';
+      const probBgImg = pachinkoProbBgImgPathInput.value.trim() || 'assets/Probability Variation.png';
       
-      const img1 = pachinkoImg1PathInput.value.trim() || 'welcome home.png';
-      const img2 = pachinkoImg2PathInput.value.trim() || 'stand-by.png';
-      const effectImg = pachinkoEffectImgPathInput.value.trim() || 'Effoct.png';
-      const ironBallImg = pachinkoIronBallPathInput.value.trim() || 'Iron ball.png';
+      const img1 = pachinkoImg1PathInput.value.trim() || 'assets/welcome home.png';
+      const img2 = pachinkoImg2PathInput.value.trim() || 'assets/stand-by.png';
+      const effectImg = pachinkoEffectImgPathInput.value.trim() || 'assets/Effoct.png';
+      const ironBallImg = pachinkoIronBallPathInput.value.trim() || 'assets/Iron ball.png';
 
       // 参考画像の「鎖＋鉄球」を一枚の画像として確変演出に使用。
       kakuhenBall.src = ironBallImg;
@@ -5048,7 +5048,7 @@
     const groupScaleValText = document.getElementById('groupScaleValText');
     const resetGroupPosBtn = document.getElementById('resetGroupPosBtn');
 
-    let currentBgImageSrc = 'building.png';
+    let currentBgImageSrc = 'assets/building.png';
 
     function loadAndProcessBgImage(src) {
       currentBgImageSrc = src;
@@ -5105,7 +5105,7 @@
       bgFileInput.value = '';
       bgUrlInput.value = '';
       localStorage.removeItem('momonga_custom_bg');
-      loadAndProcessBgImage('building.png');
+      loadAndProcessBgImage('assets/building.png');
     });
 
     const savedBg = localStorage.getItem('momonga_custom_bg');
@@ -5115,7 +5115,7 @@
         bgUrlInput.value = savedBg;
       }
     } else {
-      loadAndProcessBgImage('building.png');
+      loadAndProcessBgImage('assets/building.png');
     }
 
     /* ----------------------------------
@@ -5757,7 +5757,7 @@
           notifyList = saved.map((item, index) => ({
             id: String(item.id || `notify-${Date.now()}-${index}`),
             enabled: !!item.enabled,
-            path: String(item.path || 'notification.wav'),
+            path: String(item.path || 'assets/notification.wav'),
             interval: Math.max(1, parseInt(item.interval) || 5)
           }));
         }
@@ -5769,7 +5769,7 @@
         notifyList = [{
           id: `notify-${Date.now()}`,
           enabled: false,
-          path: 'notification.wav',
+          path: 'assets/notification.wav',
           interval: 5
         }];
       }
@@ -5780,7 +5780,7 @@
     }
 
     function playNotifySound(path) {
-      const audioPath = String(path || '').trim() || 'notification.wav';
+      const audioPath = String(path || '').trim() || 'assets/notification.wav';
       const audio = new Audio(audioPath);
       audio.volume = parseFloat(document.getElementById('volumeRange').value) || 0.5;
       audio.play().catch(e => console.warn('通知音再生エラー:', e));
@@ -5832,7 +5832,7 @@
         pathInput.type = 'text';
         pathInput.className = 'notify-path-input';
         pathInput.value = item.path;
-        pathInput.placeholder = 'notification.wav';
+        pathInput.placeholder = 'assets/notification.wav';
         pathLabel.appendChild(pathInput);
 
         const intervalLabel = document.createElement('label');
@@ -5873,7 +5873,7 @@
         });
 
         pathInput.addEventListener('change', () => {
-          item.path = pathInput.value.trim() || 'notification.wav';
+          item.path = pathInput.value.trim() || 'assets/notification.wav';
           saveNotifyList();
           scheduleNotifyItem(item);
         });
@@ -5936,7 +5936,7 @@
 
     let isVoiceEnabled = false;
     let voiceTimer = null;
-    let voiceList = ['talk_01.wav', 'talk_02.wav'];
+    let voiceList = ['assets/talk_01.wav', 'assets/talk_02.wav'];
     let currentVoiceIdx = 0;
 
     function renderVoiceList() {
@@ -5980,7 +5980,7 @@
     }
 
     addVoiceBtn.addEventListener('click', () => {
-      voiceList.push('talk_03.wav');
+      voiceList.push('assets/talk_03.wav');
       renderVoiceList();
     });
 
@@ -6498,7 +6498,7 @@
       if (!ramStatic) {
         ramStatic = document.createElement('img');
         ramStatic.className = 'ram-static';
-        ramStatic.src = 'ram.png';
+        ramStatic.src = 'assets/ram.png';
         ramStatic.alt = 'ラム';
         ramPopContainer.appendChild(ramStatic);
       }
@@ -6526,7 +6526,7 @@
       if (!cfg) return;
       const ram = document.createElement('img');
       ram.className = `ram-pop ram-preview-only from-${direction}`;
-      ram.src = 'ram.png';
+      ram.src = 'assets/ram.png';
       ram.alt = 'ラム';
       ram.style.setProperty('--ram-size', `${cfg.size.value}px`);
       ram.style.setProperty('--ram-rotation', `${cfg.rotation.value}deg`);
@@ -6552,7 +6552,7 @@
       ramPopRunning = true;
       const ram = document.createElement('img');
       ram.className = `ram-pop from-${direction}`;
-      ram.src = 'ram.png';
+      ram.src = 'assets/ram.png';
       ram.alt = 'ラム';
       ram.style.setProperty('--ram-size', `${cfg.size.value}px`);
       ram.style.setProperty('--ram-rotation', `${cfg.rotation.value}deg`);
