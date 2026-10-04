@@ -1961,7 +1961,16 @@
         max-height: 32dvh;
       }
     }
-  </style>
+  
+/* 📱 スマホ：背景＆キャラ全体を直接タッチ操作 */
+.bg-momonga-group {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+</style>
 
 </head>
 <body class="theme-cyber">
@@ -5142,13 +5151,41 @@
       localStorage.setItem('momonga_group_pos', JSON.stringify(groupPos));
     });
 
+    /* ----------------------------------
+       🖱️📱 背景＆キャラ全体のドラッグ／ピンチズーム
+       ・PC：マウスドラッグ
+       ・スマホ：1本指ドラッグで移動
+       ・スマホ：2本指ピンチで拡大／縮小
+    ---------------------------------- */
     let isGroupDragging = false;
     let groupStartX = 0, groupStartY = 0;
     let groupInitX = 0, groupInitY = 0;
 
+    let touchDragging = false;
+    let touchStartX = 0, touchStartY = 0;
+    let touchInitX = 0, touchInitY = 0;
+    let pinchStartDistance = 0;
+    let pinchStartScale = 100;
+
+    function saveGroupPosition() {
+      localStorage.setItem('momonga_group_pos', JSON.stringify(groupPos));
+    }
+
+    function canDragWholeGroup(target) {
+      if (
+        target &&
+        target.classList &&
+        target.classList.contains('draggable-part') &&
+        isUnlocked &&
+        !lockPositionToggle.checked
+      ) return false;
+      return true;
+    }
+
+    // PC：マウスドラッグ
     bgMomongaGroup.addEventListener('mousedown', (e) => {
-      if (e.target.classList.contains('draggable-part') && isUnlocked && !lockPositionToggle.checked) return;
-      
+      if (!canDragWholeGroup(e.target)) return;
+
       isGroupDragging = true;
       groupStartX = e.clientX;
       groupStartY = e.clientY;
@@ -5161,21 +5198,90 @@
 
     function onGroupMouseMove(e) {
       if (!isGroupDragging) return;
-      const dx = e.clientX - groupStartX;
-      const dy = e.clientY - groupStartY;
-      groupPos.x = groupInitX + dx;
-      groupPos.y = groupInitY + dy;
+      groupPos.x = groupInitX + (e.clientX - groupStartX);
+      groupPos.y = groupInitY + (e.clientY - groupStartY);
       applyGroupTransform();
     }
 
     function onGroupMouseUp() {
       if (isGroupDragging) {
         isGroupDragging = false;
-        localStorage.setItem('momonga_group_pos', JSON.stringify(groupPos));
+        saveGroupPosition();
       }
       window.removeEventListener('mousemove', onGroupMouseMove);
       window.removeEventListener('mouseup', onGroupMouseUp);
     }
+
+    function getTouchDistance(t1, t2) {
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // スマホ：1本指ドラッグ＋2本指ピンチズーム
+    bgMomongaGroup.addEventListener('touchstart', (e) => {
+      if (!canDragWholeGroup(e.target)) return;
+
+      if (e.touches.length >= 2) {
+        touchDragging = false;
+        pinchStartDistance = getTouchDistance(e.touches[0], e.touches[1]);
+        pinchStartScale = groupPos.scale;
+        e.preventDefault();
+        return;
+      }
+
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        touchDragging = true;
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchInitX = groupPos.x;
+        touchInitY = groupPos.y;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    bgMomongaGroup.addEventListener('touchmove', (e) => {
+      if (!canDragWholeGroup(e.target)) return;
+
+      if (e.touches.length >= 2) {
+        const distance = getTouchDistance(e.touches[0], e.touches[1]);
+
+        if (pinchStartDistance > 0) {
+          const ratio = distance / pinchStartDistance;
+          const newScale = Math.max(
+            20,
+            Math.min(200, Math.round(pinchStartScale * ratio))
+          );
+
+          groupPos.scale = newScale;
+          groupScaleInput.value = newScale;
+          applyGroupTransform();
+        }
+
+        e.preventDefault();
+        return;
+      }
+
+      if (touchDragging && e.touches.length === 1) {
+        const t = e.touches[0];
+        groupPos.x = touchInitX + (t.clientX - touchStartX);
+        groupPos.y = touchInitY + (t.clientY - touchStartY);
+        applyGroupTransform();
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    function finishTouchGroupOperation() {
+      if (touchDragging || pinchStartDistance > 0) {
+        saveGroupPosition();
+      }
+      touchDragging = false;
+      pinchStartDistance = 0;
+    }
+
+    bgMomongaGroup.addEventListener('touchend', finishTouchGroupOperation, { passive: true });
+    bgMomongaGroup.addEventListener('touchcancel', finishTouchGroupOperation, { passive: true });
 
     groupScaleInput.value = groupPos.scale;
     applyGroupTransform();
