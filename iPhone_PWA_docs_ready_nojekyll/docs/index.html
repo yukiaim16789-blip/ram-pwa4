@@ -914,9 +914,9 @@
       z-index: -1;
     }
 
-    #ytBgmIframe {
-      width: 2px;
-      height: 2px;
+    #ytBgmPlayerHolder {
+      width: 200px;
+      height: 200px;
       border: 0;
     }
 
@@ -2811,6 +2811,12 @@
       <input type="text" id="ytUrlInput" placeholder="https://www.youtube.com/watch?v=..." value="https://www.youtube.com/watch?v=jfKfPfyJRdk">
     </label>
     <button id="bgmToggleBtn">🎵 BGM再生: OFF</button>
+    <label style="margin-top:4px;">
+      BGM音量:
+      <input type="range" id="ytBgmVolume" min="0" max="100" step="1" value="50">
+      <span id="ytBgmVolumeText">50%</span>
+    </label>
+    <div class="sound-timer-info" id="ytBgmStatus">YouTube BGM: 停止中</div>
 
     <hr style="border-color: #333; margin: 2px 0;">
 
@@ -2915,15 +2921,8 @@
     </div>
   </div>
 
-  <div id="ytBgmContainer">
-    <iframe
-      id="ytBgmIframe"
-      title="独立BGMプレイヤー"
-      allow="autoplay; encrypted-media; picture-in-picture"
-      referrerpolicy="strict-origin-when-cross-origin"
-      frameborder="0"
-      scrolling="no"
-      src="about:blank"></iframe>
+  <div id="ytBgmContainer" aria-hidden="true">
+    <div id="ytBgmPlayerHolder"></div>
   </div>
 
   <script src="https://www.youtube.com/iframe_api"></script>
@@ -5753,18 +5752,28 @@
     /* ----------------------------------
        🎵 YouTube BGM 埋め込みプレイヤー
     ---------------------------------- */
-    // BGMはYouTubeの通常埋め込みiframeを使用します。
-    // YouTubeは file:// からの埋め込みで「Error 153（Referer不足）」になることがあるため、
-    // このHTMLは localhost の簡易Webサーバー経由で起動する方式に対応しています。
+    // YouTubeの通常URLをそのまま<audio>で再生することはできないため、
+    // YouTube IFrame Player APIで再生します。
+    // 「BGM再生」ボタンのクリックを起点に再生するので、自動再生制限にも対応しやすくしています。
     let isBgmPlaying = false;
+    let ytBgmPlayer = null;
+    let ytBgmApiReady = false;
+    let pendingBgmVideoId = null;
+
     const bgmToggleBtn = document.getElementById('bgmToggleBtn');
     const ytUrlInput = document.getElementById('ytUrlInput');
-    const ytBgmIframe = document.getElementById('ytBgmIframe');
+    const ytBgmVolume = document.getElementById('ytBgmVolume');
+    const ytBgmVolumeText = document.getElementById('ytBgmVolumeText');
+    const ytBgmStatus = document.getElementById('ytBgmStatus');
 
     function setBgmButtonState(playing) {
       bgmToggleBtn.textContent = playing ? '🎵 BGM再生: ON' : '🎵 BGM再生: OFF';
       bgmToggleBtn.style.background = playing ? '#00f3ff' : '#ff0055';
       bgmToggleBtn.style.color = playing ? '#000' : '#fff';
+    }
+
+    function setBgmStatus(text) {
+      if (ytBgmStatus) ytBgmStatus.textContent = `YouTube BGM: ${text}`;
     }
 
     function saveBgmUrl() {
@@ -5774,41 +5783,142 @@
     const savedBgmUrl = localStorage.getItem('momonga_bgm_url');
     if (savedBgmUrl) ytUrlInput.value = savedBgmUrl;
 
-    if (window.location.protocol === 'file:') {
-      const fileModeNotice = document.createElement('div');
-      fileModeNotice.className = 'sound-timer-info';
-      fileModeNotice.style.color = '#ff77bc';
-      fileModeNotice.textContent = '⚠️ YouTube BGMは「起動.bat」から起動すると使用できます（file://ではError 153になる場合があります）';
-      bgmToggleBtn.parentElement.appendChild(fileModeNotice);
+    const savedBgmVolume = parseInt(localStorage.getItem('momonga_bgm_volume') || '50', 10);
+    ytBgmVolume.value = String(Math.min(100, Math.max(0, savedBgmVolume)));
+    ytBgmVolumeText.textContent = `${ytBgmVolume.value}%`;
+
+    function setBgmVolume() {
+      const volume = Math.min(100, Math.max(0, parseInt(ytBgmVolume.value, 10) || 0));
+      ytBgmVolumeText.textContent = `${volume}%`;
+      localStorage.setItem('momonga_bgm_volume', String(volume));
+      if (ytBgmPlayer && typeof ytBgmPlayer.setVolume === 'function') {
+        ytBgmPlayer.setVolume(volume);
+      }
     }
 
-    function buildBgmEmbedUrl(videoId) {
-      const params = new URLSearchParams({
-        autoplay: '1',
-        controls: '0',
-        loop: '1',
-        playlist: videoId,
-        playsinline: '1',
-        rel: '0',
-        modestbranding: '1',
-        enablejsapi: '0',
-        origin: window.location.origin
-      });
-      return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
+    ytBgmVolume.addEventListener('input', setBgmVolume);
+
+    // URL / 動画IDから11文字のYouTube動画IDを取り出します。
+    function extractBgmVideoId(value) {
+      const text = String(value || '').trim();
+      if (!text) return '';
+
+      // 既存の動画用extractVideoIdが利用できる場合はまず試します。
+      try {
+        const existing = extractVideoId(text);
+        if (existing && /^[A-Za-z0-9_-]{11}$/.test(existing)) return existing;
+      } catch (e) {}
+
+      const patterns = [
+        /[?&]v=([A-Za-z0-9_-]{11})/,
+        /youtu\.be\/([A-Za-z0-9_-]{11})/,
+        /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
+        /^([A-Za-z0-9_-]{11})$/
+      ];
+
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) return match[1];
+      }
+      return '';
     }
+
+    function ensureBgmPlayer() {
+      if (!ytBgmApiReady || typeof YT === 'undefined' || !YT.Player) {
+        return false;
+      }
+
+      if (ytBgmPlayer) return true;
+
+      // APIが作るiframeを画面外に置きます。
+      const holder = document.getElementById('ytBgmPlayerHolder');
+      if (!holder) return false;
+
+      ytBgmPlayer = new YT.Player('ytBgmPlayerHolder', {
+        width: '200',
+        height: '200',
+        videoId: pendingBgmVideoId || '',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          loop: 1,
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1,
+          origin: window.location.origin
+        },
+        events: {
+          onReady: (event) => {
+            setBgmVolume();
+            if (pendingBgmVideoId && isBgmPlaying) {
+              event.target.loadVideoById(pendingBgmVideoId);
+              event.target.setVolume(parseInt(ytBgmVolume.value, 10) || 50);
+            }
+          },
+          onStateChange: (event) => {
+            if (typeof YT !== 'undefined' && event.data === YT.PlayerState.ENDED) {
+              if (ytBgmPlayer) {
+                ytBgmPlayer.playVideo();
+              }
+            } else if (typeof YT !== 'undefined' && event.data === YT.PlayerState.PLAYING) {
+              isBgmPlaying = true;
+              setBgmButtonState(true);
+              setBgmStatus('再生中');
+            } else if (typeof YT !== 'undefined' && event.data === YT.PlayerState.PAUSED) {
+              if (isBgmPlaying) {
+                setBgmStatus('一時停止');
+              }
+            }
+          },
+          onError: (event) => {
+            isBgmPlaying = false;
+            setBgmButtonState(false);
+            const messages = {
+              2: '動画IDが正しくありません',
+              5: 'HTML5プレーヤーで再生できません',
+              100: '動画が削除済み・非公開の可能性があります',
+              101: 'この動画は埋め込み再生できません',
+              150: 'この動画は埋め込み再生できません',
+              153: 'YouTube側でReferer情報が必要です。GitHub PagesなどHTTPS上で開いてください'
+            };
+            setBgmStatus(`再生エラー: ${messages[event.data] || `コード ${event.data}`}`);
+          }
+        }
+      });
+
+      return true;
+    }
+
+    // YouTube IFrame APIが読み込まれた後に呼ばれます。
+    window.onYouTubeIframeAPIReady = function() {
+      ytBgmApiReady = true;
+      setBgmStatus('準備完了');
+
+      if (pendingBgmVideoId) {
+        ensureBgmPlayer();
+      }
+    };
 
     function stopBgm() {
       isBgmPlaying = false;
-      ytBgmIframe.src = 'about:blank';
+      pendingBgmVideoId = null;
+
+      if (ytBgmPlayer && typeof ytBgmPlayer.stopVideo === 'function') {
+        ytBgmPlayer.stopVideo();
+      }
+
       setBgmButtonState(false);
+      setBgmStatus('停止中');
     }
 
     bgmToggleBtn.addEventListener('click', () => {
       saveBgmUrl();
 
-      const vid = extractVideoId(ytUrlInput.value);
+      const vid = extractBgmVideoId(ytUrlInput.value);
       if (!vid) {
-        alert('YouTubeのURLまたは動画IDが正しくありません。');
+        alert('YouTubeのURLまたは11文字の動画IDを入力してください。');
+        setBgmStatus('URL / 動画IDが正しくありません');
         return;
       }
 
@@ -5817,34 +5927,63 @@
         return;
       }
 
-      // file:// のままだとYouTube側でRefererが付かず、Error 153になる場合があります。
+      pendingBgmVideoId = vid;
+      isBgmPlaying = true;
+      setBgmButtonState(true);
+      setBgmStatus('再生準備中…');
+
+      // file:// はYouTubeのReferer判定で失敗することがあるため、
+      // GitHub Pages / localhostなどHTTP(S)で開くことを推奨します。
       if (window.location.protocol === 'file:') {
-        alert('YouTube BGMを使う場合は、付属の「起動.bat」から起動してください。\n\nこのHTMLを file:// で直接開くと、YouTubeのError 153が発生することがあります。');
+        setBgmStatus('file://では再生できない場合があります。GitHub Pagesで試してください');
+      }
+
+      if (!ytBgmApiReady) {
+        // API読み込み完了後に onYouTubeIframeAPIReady から続行します。
         return;
       }
 
-      // このボタンのクリック直後にiframeを生成するため、
-      // ブラウザ側のユーザー操作による再生許可を利用できます。
-      ytBgmIframe.src = buildBgmEmbedUrl(vid);
-      isBgmPlaying = true;
-      setBgmButtonState(true);
+      if (!ensureBgmPlayer()) {
+        isBgmPlaying = false;
+        setBgmButtonState(false);
+        setBgmStatus('プレーヤーを作成できませんでした');
+        return;
+      }
+
+      try {
+        ytBgmPlayer.loadVideoById(vid);
+        ytBgmPlayer.setVolume(parseInt(ytBgmVolume.value, 10) || 50);
+        ytBgmPlayer.playVideo();
+      } catch (e) {
+        console.error('YouTube BGM再生エラー:', e);
+        isBgmPlaying = false;
+        setBgmButtonState(false);
+        setBgmStatus('再生に失敗しました');
+      }
     });
 
     ytUrlInput.addEventListener('change', () => {
       saveBgmUrl();
-      if (!isBgmPlaying) return;
 
-      const vid = extractVideoId(ytUrlInput.value);
+      const vid = extractBgmVideoId(ytUrlInput.value);
       if (!vid) {
-        stopBgm();
+        if (isBgmPlaying) stopBgm();
         return;
       }
 
-      ytBgmIframe.src = buildBgmEmbedUrl(vid);
-    });
+      if (!isBgmPlaying) {
+        setBgmStatus('URLを保存しました');
+        return;
+      }
 
-    // YouTubeの通常埋め込みiframeでは外部から音量を直接変更できないため、
-    // この音量スライダーは既存のローカル音声・通知音・ボイス用として維持します。
+      pendingBgmVideoId = vid;
+
+      if (ytBgmPlayer && typeof ytBgmPlayer.loadVideoById === 'function') {
+        ytBgmPlayer.loadVideoById(vid);
+        ytBgmPlayer.setVolume(parseInt(ytBgmVolume.value, 10) || 50);
+        ytBgmPlayer.playVideo();
+      }
+    });
 
     /* ----------------------------------
        🔔 通知音＆定期ボイスタイマー制御（複数登録対応）
