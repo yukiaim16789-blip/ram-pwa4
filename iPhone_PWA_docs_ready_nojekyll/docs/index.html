@@ -179,6 +179,33 @@
     .gaze-enabled #part-eye-half {
       transition: transform 0.12s ease-out;
     }
+
+    /* 🎵 現在再生中のYouTubeタイトル */
+    #currentYoutubeTitle {
+      position: fixed;
+      right: 26px;
+      bottom: 78px;
+      width: 260px;
+      min-height: 54px;
+      box-sizing: border-box;
+      padding: 10px 14px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.35;
+      color: rgba(255,255,255,0.78);
+      background: rgba(0,0,0,0.28);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 10px;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      pointer-events: none;
+      z-index: 9998;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.65);
+    }
+
 </style>
   <style>
     :root {
@@ -2811,6 +2838,10 @@
       <input type="text" id="ytUrlInput" placeholder="https://www.youtube.com/watch?v=..." value="https://www.youtube.com/watch?v=jfKfPfyJRdk">
     </label>
     <button id="bgmToggleBtn">🎵 BGM再生: OFF</button>
+    <label style="margin-top:4px; display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="ytBgmLoop" checked>
+      🔁 ループ再生
+    </label>
     <label style="margin-top:4px;">
       BGM音量:
       <input type="range" id="ytBgmVolume" min="0" max="100" step="1" value="50">
@@ -5765,6 +5796,8 @@
     const ytBgmVolume = document.getElementById('ytBgmVolume');
     const ytBgmVolumeText = document.getElementById('ytBgmVolumeText');
     const ytBgmStatus = document.getElementById('ytBgmStatus');
+    const ytBgmLoop = document.getElementById('ytBgmLoop');
+    const currentYoutubeTitle = document.getElementById('currentYoutubeTitle');
 
     function setBgmButtonState(playing) {
       bgmToggleBtn.textContent = playing ? '🎵 BGM再生: ON' : '🎵 BGM再生: OFF';
@@ -5786,6 +5819,12 @@
     const savedBgmVolume = parseInt(localStorage.getItem('momonga_bgm_volume') || '50', 10);
     ytBgmVolume.value = String(Math.min(100, Math.max(0, savedBgmVolume)));
     ytBgmVolumeText.textContent = `${ytBgmVolume.value}%`;
+    const savedBgmLoop = localStorage.getItem('momonga_bgm_loop');
+    ytBgmLoop.checked = savedBgmLoop === null ? true : savedBgmLoop === 'true';
+
+    ytBgmLoop.addEventListener('change', () => {
+      localStorage.setItem('momonga_bgm_loop', String(ytBgmLoop.checked));
+    });
 
     function setBgmVolume() {
       const volume = Math.min(100, Math.max(0, parseInt(ytBgmVolume.value, 10) || 0));
@@ -5842,7 +5881,8 @@
         playerVars: {
           autoplay: 0,
           controls: 0,
-          loop: 1,
+          loop: ytBgmLoop.checked ? 1 : 0,
+          playlist: pendingBgmVideoId || undefined,
           playsinline: 1,
           rel: 0,
           modestbranding: 1,
@@ -5858,8 +5898,14 @@
           },
           onStateChange: (event) => {
             if (typeof YT !== 'undefined' && event.data === YT.PlayerState.ENDED) {
-              if (ytBgmPlayer) {
+              if (ytBgmLoop.checked && ytBgmPlayer) {
+                ytBgmPlayer.seekTo(0, true);
                 ytBgmPlayer.playVideo();
+              } else {
+                isBgmPlaying = false;
+                setBgmButtonState(false);
+                setBgmStatus('再生終了');
+                setCurrentYoutubeTitle('');
               }
             } else if (typeof YT !== 'undefined' && event.data === YT.PlayerState.PLAYING) {
               isBgmPlaying = true;
@@ -5900,6 +5946,37 @@
       }
     };
 
+    function setCurrentYoutubeTitle(title) {
+      const text = String(title || '').trim();
+      if (!text) {
+        currentYoutubeTitle.textContent = '';
+        currentYoutubeTitle.style.display = 'none';
+        return;
+      }
+      currentYoutubeTitle.textContent = `🎵 ${text}`;
+      currentYoutubeTitle.style.display = 'flex';
+    }
+
+    async function fetchYoutubeTitle(videoId) {
+      try {
+        const endpoint = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}&format=json`;
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error(`oEmbed HTTP ${response.status}`);
+        const data = await response.json();
+        return data.title || `YouTube (${videoId})`;
+      } catch (error) {
+        console.warn('YouTubeタイトル取得失敗:', error);
+        return `YouTube (${videoId})`;
+      }
+    }
+
+    async function updateYoutubeTitle(videoId) {
+      const title = await fetchYoutubeTitle(videoId);
+      if (pendingBgmVideoId === videoId && isBgmPlaying) {
+        setCurrentYoutubeTitle(title);
+      }
+    }
+
     function stopBgm() {
       isBgmPlaying = false;
       pendingBgmVideoId = null;
@@ -5910,6 +5987,7 @@
 
       setBgmButtonState(false);
       setBgmStatus('停止中');
+      setCurrentYoutubeTitle('');
     }
 
     bgmToggleBtn.addEventListener('click', () => {
@@ -5931,6 +6009,8 @@
       isBgmPlaying = true;
       setBgmButtonState(true);
       setBgmStatus('再生準備中…');
+      setCurrentYoutubeTitle('タイトルを取得中…');
+      updateYoutubeTitle(vid);
 
       // file:// はYouTubeのReferer判定で失敗することがあるため、
       // GitHub Pages / localhostなどHTTP(S)で開くことを推奨します。
@@ -5977,6 +6057,8 @@
       }
 
       pendingBgmVideoId = vid;
+      setCurrentYoutubeTitle('タイトルを取得中…');
+      updateYoutubeTitle(vid);
 
       if (ytBgmPlayer && typeof ytBgmPlayer.loadVideoById === 'function') {
         ytBgmPlayer.loadVideoById(vid);
@@ -7209,5 +7291,6 @@
     setTimeout(() => { syncIdleEyePositions(); setIdleEyeState(0); scheduleIdleStateTimer(); }, 200);
 
 </script>
+  <div id="currentYoutubeTitle" aria-live="polite"></div>
 </body>
 </html>
