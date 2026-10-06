@@ -6079,18 +6079,14 @@
     };
 
     function setCurrentYoutubeTitle(title) {
-      const el = document.getElementById('currentYoutubeTitle');
-      if (!el) return;
-
       const text = String(title || '').trim();
       if (!text) {
-        el.textContent = '';
-        el.style.display = 'none';
+        currentYoutubeTitle.textContent = '';
+        currentYoutubeTitle.style.display = 'none';
         return;
       }
-
-      el.textContent = `🎵 ${text}`;
-      el.style.display = 'flex';
+      currentYoutubeTitle.textContent = `🎵 ${text}`;
+      currentYoutubeTitle.style.display = 'flex';
     }
 
     async function fetchYoutubeTitle(videoId) {
@@ -7159,27 +7155,11 @@
       return new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
     }
 
-    function resolvePageAssetPath(path) {
-      const value = String(path || '').trim();
-      if (!value) return '';
-      if (/^(https?:|data:|blob:|file:|\/)/i.test(value)) return value;
-      try {
-        return new URL(value, document.baseURI).href;
-      } catch (_) {
-        return value;
-      }
-    }
-
     function getIdleSurpriseWallpaperPath() {
-      const path = (surpriseWallpaper2Path?.value || '').trim() || 'assets/images/background2.png';
-      return resolvePageAssetPath(path);
+      return (surpriseWallpaper2Path?.value || '').trim() || 'assets/images/background2.png';
     }
 
     async function playIdleSurpriseWav() {
-      const path = resolvePageAssetPath(
-        (idleSurpriseWavPath?.value || '').trim() || 'assets/audio/画面切り替わりオン.wav'
-      );
-      if (!path) return 0;
       const path = (idleSurpriseWavPath?.value || '').trim() || 'assets/audio/画面切り替わりオン.wav';
       if (!path) return 0;
 
