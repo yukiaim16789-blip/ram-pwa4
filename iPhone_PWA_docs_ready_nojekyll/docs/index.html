@@ -5915,7 +5915,21 @@
     const ytBgmVolumeText = document.getElementById('ytBgmVolumeText');
     const ytBgmStatus = document.getElementById('ytBgmStatus');
     const ytBgmLoop = document.getElementById('ytBgmLoop');
-    const currentYoutubeTitle = document.getElementById('currentYoutubeTitle');
+    function setCurrentYoutubeTitle(title) {
+  const el = document.getElementById('currentYoutubeTitle');
+  if (!el) return;
+
+  const text = String(title || '').trim();
+
+  if (!text) {
+    el.textContent = '';
+    el.style.display = 'none';
+    return;
+  }
+
+  el.textContent = `🎵 ${text}`;
+  el.style.display = 'flex';
+}
 
     function setBgmButtonState(playing) {
       bgmToggleBtn.textContent = playing ? '🎵 BGM再生: ON' : '🎵 BGM再生: OFF';
