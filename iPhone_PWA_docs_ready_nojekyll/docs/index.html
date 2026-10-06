@@ -1618,6 +1618,31 @@
     }
   </style>
 
+<style id="idle-surprise-transition-css">
+  /* 😲 放置中に閉じ目へ移行した瞬間の特別演出 */
+  #idleSurpriseWallpaper2{
+    position:fixed; inset:0; z-index:2; display:none; pointer-events:none;
+    background:#000; overflow:hidden;
+  }
+  #idleSurpriseWallpaper2 img{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  #idleSurpriseFlash{
+    position:fixed; inset:0; z-index:190; pointer-events:none;
+    background:#000; opacity:0; display:none;
+  }
+  #idleSurpriseFlash.is-active{
+    display:block; animation:idleSurpriseFlash 0.42s ease-out forwards;
+  }
+  @keyframes idleSurpriseFlash{
+    0%{opacity:0}
+    22%{opacity:1}
+    58%{opacity:1}
+    100%{opacity:0}
+  }
+  body.idle-surprise-active #idleSleepEffectLayer{display:none !important}
+</style>
+
 <style id="idle-sleep-effects-css">
   #idleSleepEffectLayer{position:fixed;inset:0;z-index:175;pointer-events:none;display:none;overflow:hidden}
   #idleSleepDim{position:absolute;inset:0;background:rgba(0,0,0,.16);opacity:0;transition:opacity 1.2s ease}
@@ -2053,6 +2078,11 @@
   
   <!-- 👀 ラムがいろいろな場所からひょっこり顔を出す -->
   <div class="ram-pop-container" id="ramPopContainer" aria-hidden="true"></div>
+
+<div id="idleSurpriseWallpaper2" aria-hidden="true">
+  <img id="idleSurpriseWallpaper2Img" src="" alt="特別演出用2枚目の壁紙">
+</div>
+<div id="idleSurpriseFlash" aria-hidden="true"></div>
 
 <div id="idleSleepEffectLayer" aria-hidden="true">
   <div id="idleSleepDim"></div>
@@ -2644,6 +2674,28 @@
         背景画像のURLを入力:
         <input type="text" id="mediaImageUrlInput" placeholder="https://example.com/background.jpg">
       </label>
+    </div>
+
+    <!-- 😲 閉じ目→暗転→2枚目壁紙→驚き演出用 -->
+    <div style="margin-top:8px; padding:8px; border:1px solid rgba(255,0,85,.35); border-radius:7px; background:rgba(255,0,85,.06);">
+      <div style="font-weight:bold; color:#fff; margin-bottom:5px;">😲 閉じ目になった時の特別演出</div>
+      <label>
+        2枚目の壁紙ファイル:
+        <input type="file" id="surpriseWallpaper2FileInput" accept="image/*">
+      </label>
+      <label style="margin-top:4px;">
+        2枚目の壁紙パス / URL:
+        <input type="text" id="surpriseWallpaper2Path" value="assets/images/background2.png" placeholder="assets/images/background2.png">
+      </label>
+      <label style="margin-top:4px;">
+        切り替え時に流すWAV:
+        <input type="text" id="idleSurpriseWavPath" value="assets/audio/画面切り替わりオン.wav" placeholder="assets/audio/画面切り替わりオン.wav">
+      </label>
+      <label style="margin-top:4px;">
+        切り替えWAV音量: <span id="idleSurpriseWavVolumeText">50%</span>
+        <input type="range" id="idleSurpriseWavVolume" min="0" max="100" step="1" value="50">
+      </label>
+      <div class="sound-timer-info">閉じ目になった瞬間に一度だけ暗転し、2枚目の壁紙へ切り替えながらWAVを再生します。その後「ここはどこなのだ？」と驚き状態で話し、読み上げ終了後に通常状態へ戻します。WAV音量は上のスライダーで個別に調整できます。</div>
     </div>
 
     <div class="controls-row" style="margin-top:6px;">
@@ -3784,7 +3836,7 @@
         }
 
         voicevoxStatusInfo.textContent = `VOICEVOX: ずんだもんで再生中 (ID ${speakerId})`;
-        return true;
+        return playback.durationMs;
       } catch (error) {
         console.warn('VOICEVOX再生失敗:', error);
         voicevoxStatusInfo.textContent = `VOICEVOX再生失敗: ${error.message}`;
@@ -3815,6 +3867,7 @@
             stopStrongToneReaction();
           };
           window.speechSynthesis.speak(uttr);
+          return Math.max(1000, text.length * 200);
         } else {
           stopStrongToneReaction();
           strongToneReactionHoldForResponse = false;
@@ -4915,6 +4968,14 @@
     const ytVideoUrlInput = document.getElementById('ytVideoUrlInput');
     const mediaImageFileInput = document.getElementById('mediaImageFileInput');
     const mediaImageUrlInput = document.getElementById('mediaImageUrlInput');
+    const surpriseWallpaper2FileInput = document.getElementById('surpriseWallpaper2FileInput');
+    const surpriseWallpaper2Path = document.getElementById('surpriseWallpaper2Path');
+    const idleSurpriseWavPath = document.getElementById('idleSurpriseWavPath');
+    const idleSurpriseWavVolume = document.getElementById('idleSurpriseWavVolume');
+    const idleSurpriseWavVolumeText = document.getElementById('idleSurpriseWavVolumeText');
+    const idleSurpriseWallpaper2 = document.getElementById('idleSurpriseWallpaper2');
+    const idleSurpriseWallpaper2Img = document.getElementById('idleSurpriseWallpaper2Img');
+    const idleSurpriseFlash = document.getElementById('idleSurpriseFlash');
 
     const videoPipToggle = document.getElementById('videoPipToggle');
     const videoMuteRow = document.getElementById('videoMuteRow');
@@ -4981,6 +5042,63 @@
         localBgImagePlayer.src = e.target.value.trim();
       }
     });
+
+    // 特別演出用2枚目壁紙。選択したファイルはこのページの実行中に使用します。
+    surpriseWallpaper2FileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      idleSurpriseWallpaper2Img.src = url;
+      idleSurpriseWallpaper2.dataset.objectUrl = url;
+      try {
+        localStorage.setItem('momonga_idle_surprise_wallpaper2_name', file.name);
+      } catch (_) {}
+    });
+
+    surpriseWallpaper2Path?.addEventListener('change', () => {
+      const value = surpriseWallpaper2Path.value.trim();
+      if (value) idleSurpriseWallpaper2Img.src = value;
+      try {
+        localStorage.setItem('momonga_idle_surprise_wallpaper2_path', value);
+      } catch (_) {}
+    });
+
+    idleSurpriseWavPath?.addEventListener('change', () => {
+      try {
+        localStorage.setItem('momonga_idle_surprise_wav_path', idleSurpriseWavPath.value.trim());
+      } catch (_) {}
+    });
+
+    function updateIdleSurpriseWavVolumeLabel() {
+      if (!idleSurpriseWavVolume || !idleSurpriseWavVolumeText) return;
+      idleSurpriseWavVolumeText.textContent = `${Math.round(Number(idleSurpriseWavVolume.value) || 0)}%`;
+    }
+
+    idleSurpriseWavVolume?.addEventListener('input', () => {
+      updateIdleSurpriseWavVolumeLabel();
+      try {
+        localStorage.setItem('momonga_idle_surprise_wav_volume', String(idleSurpriseWavVolume.value));
+      } catch (_) {}
+    });
+
+    // 保存済みの特別演出設定を反映。ファイル選択よりパスを優先します。
+    try {
+      const savedWallpaper2 = localStorage.getItem('momonga_idle_surprise_wallpaper2_path');
+      const savedWav = localStorage.getItem('momonga_idle_surprise_wav_path');
+      const savedWavVolume = localStorage.getItem('momonga_idle_surprise_wav_volume');
+      if (savedWallpaper2) {
+        surpriseWallpaper2Path.value = savedWallpaper2;
+        idleSurpriseWallpaper2Img.src = savedWallpaper2;
+      }
+      if (savedWav) idleSurpriseWavPath.value = savedWav;
+      if (savedWavVolume !== null && idleSurpriseWavVolume) {
+        const n = Math.max(0, Math.min(100, Number(savedWavVolume)));
+        if (Number.isFinite(n)) idleSurpriseWavVolume.value = n;
+      }
+      updateIdleSurpriseWavVolumeLabel();
+    } catch (_) {
+      updateIdleSurpriseWavVolumeLabel();
+    }
 
     videoMuteToggle.addEventListener('change', (e) => {
       const isMuted = e.target.checked;
@@ -7016,7 +7134,104 @@
       if (!sleepy) document.body.classList.remove('idle-sleep-active');
     }
 
-    function setIdleEyeState(state) {
+    let idleSurpriseRunning = false;
+    let idleSurpriseToken = 0;
+
+    function sleepMs(ms) {
+      return new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
+    }
+
+    function getIdleSurpriseWallpaperPath() {
+      return (surpriseWallpaper2Path?.value || '').trim() || 'assets/images/background2.png';
+    }
+
+    async function playIdleSurpriseWav() {
+      const path = (idleSurpriseWavPath?.value || '').trim() || 'assets/audio/画面切り替わりオン.wav';
+      if (!path) return 0;
+
+      try {
+        const audio = new Audio(path);
+        const specialVolume = Number(idleSurpriseWavVolume?.value);
+        audio.volume = Number.isFinite(specialVolume)
+          ? Math.max(0, Math.min(1, specialVolume / 100))
+          : 0.5;
+        await audio.play();
+        const duration = Number.isFinite(audio.duration) && audio.duration > 0
+          ? Math.ceil(audio.duration * 1000) : 800;
+        await new Promise(resolve => {
+          let finished = false;
+          const done = () => { if (finished) return; finished = true; resolve(); };
+          audio.addEventListener('ended', done, { once:true });
+          setTimeout(done, duration + 500);
+        });
+        return duration;
+      } catch (e) {
+        console.warn('閉じ目特別演出WAVの再生に失敗:', e);
+        return 0;
+      }
+    }
+
+    async function runIdleCloseSurprise() {
+      if (idleSurpriseRunning) return;
+      idleSurpriseRunning = true;
+      const token = ++idleSurpriseToken;
+
+      try {
+        document.body.classList.add('idle-surprise-active');
+
+        const wallpaperPath = getIdleSurpriseWallpaperPath();
+        if (wallpaperPath && idleSurpriseWallpaper2Img) {
+          idleSurpriseWallpaper2Img.src = wallpaperPath;
+        }
+
+        // 目を閉じた直後に一瞬暗転。WAVは暗転と同時に開始。
+        idleSurpriseFlash?.classList.remove('is-active');
+        void idleSurpriseFlash?.offsetWidth;
+        idleSurpriseFlash?.classList.add('is-active');
+        const wavPromise = playIdleSurpriseWav();
+
+        await sleepMs(120);
+        if (token !== idleSurpriseToken) return;
+        if (idleSurpriseWallpaper2 && idleSurpriseWallpaper2Img?.src) {
+          idleSurpriseWallpaper2.style.display = 'block';
+        }
+
+        await sleepMs(300);
+        if (token !== idleSurpriseToken) return;
+
+        // 壁紙切替後にびっくり状態へ。通常の「おい」リアクションと同じパーツ構成。
+        momongaContainer.classList.add('strong-reaction-eye-active');
+        strongToneReaction?.classList.add('is-active');
+        strongToneReaction?.setAttribute('aria-hidden', 'false');
+
+        const wavDuration = await wavPromise;
+        if (token !== idleSurpriseToken) return;
+
+        // WAVが長い場合は、その間も驚き状態を維持したまま、読み上げを開始。
+        // speakInputText側に「強いリアクションを読み上げ終了まで維持」と伝える。
+        strongToneReactionHoldForResponse = true;
+        const speechResult = await speakInputText('ここはどこなのだ？');
+        const speechDuration = Number(speechResult) || 1500;
+        await sleepMs(speechDuration + 150);
+      } finally {
+        if (token === idleSurpriseToken) {
+          stopStrongToneReaction();
+          momongaContainer.classList.remove('strong-reaction-eye-active');
+          // 2枚目の壁紙は、特別演出が終わってもそのまま表示し続ける。
+          // キャラクターの驚き状態だけを元に戻し、背景は勝手に元へ戻さない。
+          if (idleSurpriseWallpaper2) idleSurpriseWallpaper2.style.display = 'block';
+          idleSurpriseFlash?.classList.remove('is-active');
+          document.body.classList.remove('idle-surprise-active');
+          setIdleEyeState(0, true);
+          idleLastActivity = Date.now();
+          scheduleIdleStateTimer();
+          idleSurpriseRunning = false;
+        }
+      }
+    }
+
+    function setIdleEyeState(state, suppressSurprise = false) {
+      const previousState = idleState;
       idleState = Math.max(0, Math.min(3, state));
       [idleEyeNormal, idleEyeFine, idleEyeHalf, idleEyeClose].forEach(el => { if (el) el.style.display = 'none'; });
       const target = [idleEyeNormal, idleEyeFine, idleEyeHalf, idleEyeClose][idleState];
@@ -7025,6 +7240,10 @@
       if (idleStateStatus) idleStateStatus.textContent = `現在の状態：${names[idleState]}`;
       syncIdleEyePositions();
       updateIdleEffects();
+
+      if (!suppressSurprise && previousState !== 3 && idleState === 3) {
+        runIdleCloseSurprise();
+      }
     }
 
     function getIdleStateFromElapsed(idleSec) {
