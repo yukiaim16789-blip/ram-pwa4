@@ -2709,6 +2709,16 @@
         </button>
       </div>
 
+      <div class="controls-row" style="margin-top:6px;">
+        <span>特別演出中も順番に切り替える:</span>
+        <input type="checkbox" id="postSurpriseAutoCycleToggle" checked>
+      </div>
+      <div class="sound-timer-info" style="margin-top:4px;">
+        ONにすると、特別演出開始時の2枚目の壁紙から、
+        「背景画像 → 3枚目 → 4枚目」の順番で自動的に切り替えます。
+        選択されていない画像は自動的に飛ばします。
+      </div>
+
       <label style="margin-top:6px;">
         3枚目の切り替え画像:
         <input type="file" id="postSurpriseImage3FileInput" accept="image/*">
@@ -5010,6 +5020,7 @@
 
     // 特別演出後に切り替える画像（3枚目・4枚目）
     const switchPostSurpriseBgBtn = document.getElementById('switchPostSurpriseBgBtn');
+    const postSurpriseAutoCycleToggle = document.getElementById('postSurpriseAutoCycleToggle');
     const postSurpriseImage3FileInput = document.getElementById('postSurpriseImage3FileInput');
     const switchPostSurpriseImage3Btn = document.getElementById('switchPostSurpriseImage3Btn');
     const postSurpriseImage4FileInput = document.getElementById('postSurpriseImage4FileInput');
@@ -5100,6 +5111,51 @@
 
     // 特別演出後の画像切り替え。
     // 「青丸」の背景画像ファイル、3枚目、4枚目をボタンで切り替えます。
+    function getPostSurpriseBackgroundSource() {
+      const file = mediaImageFileInput?.files?.[0];
+      if (file) return URL.createObjectURL(file);
+
+      const url = (mediaImageUrlInput?.value || '').trim();
+      return url || '';
+    }
+
+    function getPostSurpriseAutoCycleSources() {
+      const sources = [];
+
+      const bgSrc = getPostSurpriseBackgroundSource();
+      if (bgSrc) {
+        sources.push({ src: bgSrc, label: '背景画像' });
+      }
+
+      if (postSurpriseImage3Url) {
+        sources.push({ src: postSurpriseImage3Url, label: '3枚目' });
+      }
+
+      if (postSurpriseImage4Url) {
+        sources.push({ src: postSurpriseImage4Url, label: '4枚目' });
+      }
+
+      return sources;
+    }
+
+    async function runPostSurpriseAutoCycle(token, initialWavPromise, initialSpeechPromise = null) {
+      if (!postSurpriseAutoCycleToggle?.checked) return;
+
+      const sources = getPostSurpriseAutoCycleSources();
+      if (!sources.length) return;
+
+      // 2枚目の壁紙を表示したあと、約1.2秒間隔で次の画像へ進みます。
+      // WAV・読み上げ中も継続し、特別演出が終わった時点で停止します。
+      for (const item of sources) {
+        await sleepMs(1200);
+        if (token !== idleSurpriseToken) return;
+
+        if (idleSurpriseWallpaper2Img) {
+          idleSurpriseWallpaper2Img.src = item.src;
+        }
+      }
+    }
+
     function switchToPostSurpriseImage(src, label) {
       if (!src) {
         alert(`${label}の画像が選択されていません。`);
@@ -7499,26 +7555,31 @@
         await sleepMs(300);
         if (token !== idleSurpriseToken) return;
 
-        // 壁紙切替後にびっくり状態へ。通常の「おい」リアクションと同じパーツ構成。
+        // 壁紙切替後にびっくり状態へ。
         momongaContainer.classList.add('strong-reaction-eye-active');
         strongToneReaction?.classList.add('is-active');
         strongToneReaction?.setAttribute('aria-hidden', 'false');
 
+        // 2枚目のあと、背景画像→3枚目→4枚目を特別演出として自動切替。
+        // 読み上げ中も切り替えが続きます。
+        const autoCyclePromise = runPostSurpriseAutoCycle(token, wavPromise);
+
         const wavDuration = await wavPromise;
         if (token !== idleSurpriseToken) return;
 
-        // WAVが長い場合は、その間も驚き状態を維持したまま、読み上げを開始。
-        // speakInputText側に「強いリアクションを読み上げ終了まで維持」と伝える。
         strongToneReactionHoldForResponse = true;
         const speechResult = await speakInputText('ここはどこなのだ？');
         const speechDuration = Number(speechResult) || 1500;
         await sleepMs(speechDuration + 150);
+
+        // 読み上げが短くても、最後の切り替え処理を壊さないよう待機。
+        await autoCyclePromise;
       } finally {
         if (token === idleSurpriseToken) {
           stopStrongToneReaction();
           momongaContainer.classList.remove('strong-reaction-eye-active');
-          // 2枚目の壁紙は、特別演出が終わってもそのまま表示し続ける。
-          // キャラクターの驚き状態だけを元に戻し、背景は勝手に元へ戻さない。
+
+          // 特別演出終了後は最後に表示していた画像をそのまま維持します。
           if (idleSurpriseWallpaper2) idleSurpriseWallpaper2.style.display = 'block';
           idleSurpriseFlash?.classList.remove('is-active');
           document.body.classList.remove('idle-surprise-active');
