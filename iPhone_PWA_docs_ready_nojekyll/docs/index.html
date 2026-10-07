@@ -3105,6 +3105,8 @@
     const audioInitBanner = document.getElementById('audioInitBanner');
     audioInitBanner.addEventListener('click', async () => {
       await unlockVoicevoxAudio();
+      // このユーザー操作の中で特別演出WAVも準備しておき、後の自動演出でも再生できるようにします。
+      await prepareIdleSurpriseAudio();
       audioInitBanner.style.display = 'none';
       initSpeechRecognition();
 
@@ -4977,6 +4979,13 @@
     const idleSurpriseWallpaper2Img = document.getElementById('idleSurpriseWallpaper2Img');
     const idleSurpriseFlash = document.getElementById('idleSurpriseFlash');
 
+    // 特別演出用の音声・壁紙は、GitHub Pagesでも古いlocalStorageに引きずられないよう管理します。
+    let idleSurpriseAudioBuffer = null;
+    let idleSurpriseAudioContext = null;
+    let idleSurpriseAudioSource = null;
+    let idleSurpriseResolvedWallpaperPath = '';
+    let idleSurpriseResolvedWavPath = '';
+
     const videoPipToggle = document.getElementById('videoPipToggle');
     const videoMuteRow = document.getElementById('videoMuteRow');
     const videoMuteToggle = document.getElementById('videoMuteToggle');
@@ -5050,23 +5059,29 @@
       const url = URL.createObjectURL(file);
       idleSurpriseWallpaper2Img.src = url;
       idleSurpriseWallpaper2.dataset.objectUrl = url;
+      idleSurpriseResolvedWallpaperPath = url;
       try {
         localStorage.setItem('momonga_idle_surprise_wallpaper2_name', file.name);
+        // 以前のGitHubパスを残さない
+        localStorage.removeItem('momonga_idle_surprise_wallpaper2_path');
       } catch (_) {}
     });
 
     surpriseWallpaper2Path?.addEventListener('change', () => {
       const value = surpriseWallpaper2Path.value.trim();
+      idleSurpriseResolvedWallpaperPath = value;
       if (value) idleSurpriseWallpaper2Img.src = value;
       try {
         localStorage.setItem('momonga_idle_surprise_wallpaper2_path', value);
       } catch (_) {}
     });
 
-    idleSurpriseWavPath?.addEventListener('change', () => {
+    idleSurpriseWavPath?.addEventListener('change', async () => {
+      idleSurpriseResolvedWavPath = idleSurpriseWavPath.value.trim();
       try {
-        localStorage.setItem('momonga_idle_surprise_wav_path', idleSurpriseWavPath.value.trim());
+        localStorage.setItem('momonga_idle_surprise_wav_path', idleSurpriseResolvedWavPath);
       } catch (_) {}
+      await prepareIdleSurpriseAudio();
     });
 
     function updateIdleSurpriseWavVolumeLabel() {
@@ -5081,24 +5096,110 @@
       } catch (_) {}
     });
 
-    // 保存済みの特別演出設定を反映。ファイル選択よりパスを優先します。
-    try {
-      const savedWallpaper2 = localStorage.getItem('momonga_idle_surprise_wallpaper2_path');
-      const savedWav = localStorage.getItem('momonga_idle_surprise_wav_path');
-      const savedWavVolume = localStorage.getItem('momonga_idle_surprise_wav_volume');
-      if (savedWallpaper2) {
-        surpriseWallpaper2Path.value = savedWallpaper2;
-        idleSurpriseWallpaper2Img.src = savedWallpaper2;
+    // 古いlocalStorageの壁紙パスをそのまま採用しない。
+    // GitHub Pages上のファイル名変更後も、現在のページから実在する画像を自動探索します。
+    async function resolveGitHubWallpaper2Path() {
+      const configured = (surpriseWallpaper2Path?.value || '').trim();
+      if (configured && !configured.includes('background2.png')) {
+        return configured;
       }
-      if (savedWav) idleSurpriseWavPath.value = savedWav;
-      if (savedWavVolume !== null && idleSurpriseWavVolume) {
-        const n = Math.max(0, Math.min(100, Number(savedWavVolume)));
-        if (Number.isFinite(n)) idleSurpriseWavVolume.value = n;
+
+      const candidates = [
+        'assets/images/特別演出用2枚目の画像.png',
+        'assets/images/特別演出用2枚目の画像.jpg',
+        'assets/images/特別演出用2枚目の画像.jpeg',
+        'assets/images/特別演出用2枚目.png',
+        'assets/images/background2.png'
+      ];
+
+      for (const candidate of candidates) {
+        try {
+          const response = await fetch(candidate, { method: 'HEAD', cache: 'no-store' });
+          if (response.ok) return candidate;
+        } catch (_) {}
       }
-      updateIdleSurpriseWavVolumeLabel();
-    } catch (_) {
-      updateIdleSurpriseWavVolumeLabel();
+
+      // GitHub Pagesのリポジトリ一覧から「特別演出用2枚目」を探す。
+      try {
+        const host = location.hostname;
+        const parts = location.pathname.split('/').filter(Boolean);
+        if (host.endsWith('.github.io') && parts.length) {
+          const owner = host.split('.')[0];
+          const repo = parts[0];
+          const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/assets/images`;
+          const response = await fetch(apiUrl, { cache: 'no-store' });
+          if (response.ok) {
+            const items = await response.json();
+            const match = items.find(item =>
+              item.type === 'file' &&
+              /\.(png|jpe?g|webp|gif)$/i.test(item.name) &&
+              /特別演出用2枚目|background2/i.test(item.name)
+            );
+            if (match?.name) return `assets/images/${encodeURIComponent(match.name).replace(/%2F/g, '/')}`;
+          }
+        }
+      } catch (_) {}
+
+      return configured || 'assets/images/background2.png';
     }
+
+    async function applyResolvedWallpaper2() {
+      const path = await resolveGitHubWallpaper2Path();
+      idleSurpriseResolvedWallpaperPath = path;
+      if (surpriseWallpaper2Path) surpriseWallpaper2Path.value = path;
+      if (idleSurpriseWallpaper2Img) {
+        await new Promise(resolve => {
+          const img = idleSurpriseWallpaper2Img;
+          const done = () => { img.removeEventListener('load', done); img.removeEventListener('error', done); resolve(); };
+          img.addEventListener('load', done, { once: true });
+          img.addEventListener('error', done, { once: true });
+          img.src = path;
+          if (img.complete) done();
+        });
+      }
+      return path;
+    }
+
+    // WAVもページ開始時に準備。実際の再生はユーザー操作でAudioContextを有効化した後に行います。
+    async function prepareIdleSurpriseAudio() {
+      try {
+        const path = (idleSurpriseWavPath?.value || '').trim() || 'assets/audio/画面切り替わりオン.wav';
+        if (!path) return false;
+        idleSurpriseResolvedWavPath = path;
+
+        if (!voicevoxAudioContext) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return false;
+          voicevoxAudioContext = new AudioContextClass();
+        }
+        idleSurpriseAudioContext = voicevoxAudioContext;
+        if (idleSurpriseAudioContext.state === 'suspended') await idleSurpriseAudioContext.resume();
+
+        const response = await fetch(path, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`WAV HTTP ${response.status}`);
+        const arrayBuffer = await response.arrayBuffer();
+        idleSurpriseAudioBuffer = await idleSurpriseAudioContext.decodeAudioData(arrayBuffer.slice(0));
+        return true;
+      } catch (e) {
+        console.warn('特別演出WAVの事前読み込みに失敗:', e);
+        idleSurpriseAudioBuffer = null;
+        return false;
+      }
+    }
+
+    // 起動時はGitHub上の実ファイルを探す。古いlocalStorageのパスは復元しません。
+    (async () => {
+      try {
+        localStorage.removeItem('momonga_idle_surprise_wallpaper2_path');
+        localStorage.removeItem('momonga_idle_surprise_wav_path');
+      } catch (_) {}
+      await applyResolvedWallpaper2();
+      if (idleSurpriseWavPath) {
+        idleSurpriseWavPath.value = 'assets/audio/画面切り替わりオン.wav';
+        try { await prepareIdleSurpriseAudio(); } catch (_) {}
+      }
+      updateIdleSurpriseWavVolumeLabel();
+    })();
 
     videoMuteToggle.addEventListener('change', (e) => {
       const isMuted = e.target.checked;
@@ -7156,19 +7257,37 @@
     }
 
     function getIdleSurpriseWallpaperPath() {
-      return (surpriseWallpaper2Path?.value || '').trim() || 'assets/images/background2.png';
+      return idleSurpriseResolvedWallpaperPath || (surpriseWallpaper2Path?.value || '').trim() || 'assets/images/background2.png';
     }
 
     async function playIdleSurpriseWav() {
-      const path = (idleSurpriseWavPath?.value || '').trim() || 'assets/audio/画面切り替わりオン.wav';
+      const path = idleSurpriseResolvedWavPath || (idleSurpriseWavPath?.value || '').trim() || 'assets/audio/画面切り替わりオン.wav';
       if (!path) return 0;
 
       try {
+        // ユーザー操作で解禁済みのAudioContextにWAVをデコード済みバッファから流します。
+        if (idleSurpriseAudioBuffer && idleSurpriseAudioContext) {
+          if (idleSurpriseAudioContext.state === 'suspended') await idleSurpriseAudioContext.resume();
+          const source = idleSurpriseAudioContext.createBufferSource();
+          const gain = idleSurpriseAudioContext.createGain();
+          const volume = Number(idleSurpriseWavVolume?.value);
+          gain.gain.value = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume / 100)) : 0.5;
+          source.buffer = idleSurpriseAudioBuffer;
+          source.connect(gain).connect(idleSurpriseAudioContext.destination);
+          idleSurpriseAudioSource = source;
+          source.start(0);
+          const duration = Math.ceil(idleSurpriseAudioBuffer.duration * 1000);
+          await sleepMs(duration);
+          return duration;
+        }
+
+        // 事前準備できなかった場合のフォールバック。
         const audio = new Audio(path);
         const specialVolume = Number(idleSurpriseWavVolume?.value);
         audio.volume = Number.isFinite(specialVolume)
           ? Math.max(0, Math.min(1, specialVolume / 100))
           : 0.5;
+        audio.preload = 'auto';
         await audio.play();
         const duration = Number.isFinite(audio.duration) && audio.duration > 0
           ? Math.ceil(audio.duration * 1000) : 800;
@@ -7193,7 +7312,7 @@
       try {
         document.body.classList.add('idle-surprise-active');
 
-        const wallpaperPath = getIdleSurpriseWallpaperPath();
+        const wallpaperPath = await applyResolvedWallpaper2();
         if (wallpaperPath && idleSurpriseWallpaper2Img) {
           idleSurpriseWallpaper2Img.src = wallpaperPath;
         }
