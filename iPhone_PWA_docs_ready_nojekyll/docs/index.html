@@ -4901,7 +4901,15 @@
 
           playWinSE();
         } else {
-          pachinkoSymbol.src = img1;
+          // 固定設定モードでは、
+          // ON（おかえり）→ 抽選用画像1
+          // OFF（待機継続）→ stand-by.png（抽選用画像2）
+          // として結果画像を切り替える。
+          if (pachinkoModeToggle.checked && !pachinkoOutcomeToggle.checked) {
+            pachinkoSymbol.src = img2;
+          } else {
+            pachinkoSymbol.src = img1;
+          }
         }
 
         playResultBGM();
