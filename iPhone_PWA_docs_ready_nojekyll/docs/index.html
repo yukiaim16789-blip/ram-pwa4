@@ -2715,9 +2715,9 @@
       </div>
       <div class="sound-timer-info" style="margin-top:4px;">
         ONにすると、1回目の特別演出は2枚目の壁紙、
-        2回目は3枚目、3回目は4枚目へ切り替えます。
+        2回目は3枚目、3回目は4枚目、4回目は1枚目へ戻ります。
+        その後も1枚目→3枚目→4枚目→1枚目…と繰り返します。
         同じ特別演出の中では順番に切り替えません。
-        3枚目・4枚目が選択されていない場合は、選択されている次の画像へ進みます。
       </div>
 
       <label style="margin-top:6px;">
@@ -5140,7 +5140,7 @@
     }
 
     // 特別演出を何回実行したか。
-    // 1回目=2枚目、2回目=3枚目、3回目以降=4枚目を基本とします。
+    // 1回目=2枚目、2回目=3枚目、3回目=4枚目、4回目=1枚目に戻ります。
     let postSurpriseRunCount = 0;
 
     function getPostSurpriseImageForRun(runNumber) {
@@ -5155,19 +5155,30 @@
       // 1回目は2枚目の特別演出壁紙そのもの。
       if (runNumber <= 1) return null;
 
-      // 2回目は3枚目、3回目以降は4枚目。
-      // 未選択なら次に存在する画像を使用します。
+      // 2回目は3枚目、3回目は4枚目、4回目は1枚目へ戻ります。
+      // その後は 1枚目 → 3枚目 → 4枚目 → 1枚目… と繰り返します。
       if (runNumber === 2) {
         const image3 = sources.find(item => item.label === '3枚目');
         if (image3) return image3;
         return sources.find(item => item.label === '4枚目') || null;
       }
 
-      const image4 = sources.find(item => item.label === '4枚目');
-      if (image4) return image4;
+      if (runNumber === 3) {
+        const image4 = sources.find(item => item.label === '4枚目');
+        if (image4) return image4;
+        return sources.find(item => item.label === '3枚目') || null;
+      }
 
-      const image3 = sources.find(item => item.label === '3枚目');
-      return image3 || null;
+      // 4回目以降は1枚目（青丸の背景画像）に戻します。
+      const image1 = sources.find(item => item.label === '背景画像');
+      if (image1) return image1;
+
+      // 1枚目が未選択の場合は、3枚目→4枚目の順で利用します。
+      return (
+        sources.find(item => item.label === '3枚目') ||
+        sources.find(item => item.label === '4枚目') ||
+        null
+      );
     }
 
     async function runPostSurpriseAutoCycle(token) {
