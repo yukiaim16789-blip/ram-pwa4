@@ -2710,13 +2710,14 @@
       </div>
 
       <div class="controls-row" style="margin-top:6px;">
-        <span>特別演出中も順番に切り替える:</span>
+        <span>特別演出を実行するたびに次の画像へ切り替える:</span>
         <input type="checkbox" id="postSurpriseAutoCycleToggle" checked>
       </div>
       <div class="sound-timer-info" style="margin-top:4px;">
-        ONにすると、特別演出開始時の2枚目の壁紙から、
-        「背景画像 → 3枚目 → 4枚目」の順番で自動的に切り替えます。
-        選択されていない画像は自動的に飛ばします。
+        ONにすると、1回目の特別演出は2枚目の壁紙、
+        2回目は3枚目、3回目は4枚目へ切り替えます。
+        同じ特別演出の中では順番に切り替えません。
+        3枚目・4枚目が選択されていない場合は、選択されている次の画像へ進みます。
       </div>
 
       <label style="margin-top:6px;">
@@ -5138,23 +5139,52 @@
       return sources;
     }
 
-    async function runPostSurpriseAutoCycle(token, initialWavPromise, initialSpeechPromise = null) {
-      if (!postSurpriseAutoCycleToggle?.checked) return;
+    // 特別演出を何回実行したか。
+    // 1回目=2枚目、2回目=3枚目、3回目以降=4枚目を基本とします。
+    let postSurpriseRunCount = 0;
+
+    function getPostSurpriseImageForRun(runNumber) {
+      // ONでない場合は常に従来の2枚目壁紙を使用。
+      if (!postSurpriseAutoCycleToggle?.checked) {
+        return null;
+      }
 
       const sources = getPostSurpriseAutoCycleSources();
-      if (!sources.length) return;
+      if (!sources.length) return null;
 
-      // 2枚目の壁紙を表示したあと、約1.2秒間隔で次の画像へ進みます。
-      // WAV・読み上げ中も継続し、特別演出が終わった時点で停止します。
-      for (const item of sources) {
-        await sleepMs(1200);
-        if (token !== idleSurpriseToken) return;
+      // 1回目は2枚目の特別演出壁紙そのもの。
+      if (runNumber <= 1) return null;
 
-        if (idleSurpriseWallpaper2Img) {
-          idleSurpriseWallpaper2Img.src = item.src;
-        }
+      // 2回目は3枚目、3回目以降は4枚目。
+      // 未選択なら次に存在する画像を使用します。
+      if (runNumber === 2) {
+        const image3 = sources.find(item => item.label === '3枚目');
+        if (image3) return image3;
+        return sources.find(item => item.label === '4枚目') || null;
+      }
+
+      const image4 = sources.find(item => item.label === '4枚目');
+      if (image4) return image4;
+
+      const image3 = sources.find(item => item.label === '3枚目');
+      return image3 || null;
+    }
+
+    async function runPostSurpriseAutoCycle(token) {
+      postSurpriseRunCount += 1;
+
+      const item = getPostSurpriseImageForRun(postSurpriseRunCount);
+      if (!item) return;
+
+      if (token !== idleSurpriseToken) return;
+
+      // 同じ演出中には待って次の画像へ進めず、
+      // この演出全体で1枚だけ表示します。
+      if (idleSurpriseWallpaper2Img) {
+        idleSurpriseWallpaper2Img.src = item.src;
       }
     }
+
 
     function switchToPostSurpriseImage(src, label) {
       if (!src) {
@@ -7560,9 +7590,12 @@
         strongToneReaction?.classList.add('is-active');
         strongToneReaction?.setAttribute('aria-hidden', 'false');
 
-        // 2枚目のあと、背景画像→3枚目→4枚目を特別演出として自動切替。
-        // 読み上げ中も切り替えが続きます。
-        const autoCyclePromise = runPostSurpriseAutoCycle(token, wavPromise);
+        // 特別演出を実行するたびに表示画像を1段階進めます。
+        // 1回目：2枚目の壁紙
+        // 2回目：3枚目
+        // 3回目：4枚目
+        // 同じ演出中には画像を順番に切り替えません。
+        await runPostSurpriseAutoCycle(token);
 
         const wavDuration = await wavPromise;
         if (token !== idleSurpriseToken) return;
@@ -7572,8 +7605,6 @@
         const speechDuration = Number(speechResult) || 1500;
         await sleepMs(speechDuration + 150);
 
-        // 読み上げが短くても、最後の切り替え処理を壊さないよう待機。
-        await autoCyclePromise;
       } finally {
         if (token === idleSurpriseToken) {
           stopStrongToneReaction();
