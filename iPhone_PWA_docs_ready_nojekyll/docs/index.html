@@ -2694,6 +2694,38 @@
       <div class="sound-timer-info">閉じ目になった瞬間に一度だけ暗転し、2枚目の壁紙へ切り替えながらWAVを再生します。その後「ここはどこなのだ？」と驚き状態で話し、読み上げ終了後に通常状態へ戻します。WAV音量は上のスライダーで個別に調整できます。</div>
     </div>
 
+    <!-- 🖼️ 特別演出後の画像切り替え -->
+    <div style="margin-top:8px; padding:8px; border:1px solid rgba(0,243,255,.35); border-radius:7px; background:rgba(0,243,255,.05);">
+      <div style="font-weight:bold; color:#fff; margin-bottom:5px;">🖼️ 特別演出後の画像切り替え</div>
+      <div class="sound-timer-info" style="margin-bottom:6px;">
+        特別演出が終わった後に、下のボタンで表示する画像を切り替えられます。
+        上の「背景画像ファイルを選択」で選んだ画像を最初の切り替え先として使用します。
+      </div>
+
+      <div class="controls-row" style="margin-top:4px;">
+        <span>青丸の「背景画像ファイルを選択」の画像:</span>
+        <button type="button" id="switchPostSurpriseBgBtn" style="margin:0; background:#00f3ff; color:#000;">
+          🖼️ この画像へ切り替え
+        </button>
+      </div>
+
+      <label style="margin-top:6px;">
+        3枚目の切り替え画像:
+        <input type="file" id="postSurpriseImage3FileInput" accept="image/*">
+      </label>
+      <button type="button" id="switchPostSurpriseImage3Btn" style="margin-top:4px; background:#00a8cc;">
+        🖼️ 3枚目へ切り替え
+      </button>
+
+      <label style="margin-top:6px;">
+        4枚目の切り替え画像:
+        <input type="file" id="postSurpriseImage4FileInput" accept="image/*">
+      </label>
+      <button type="button" id="switchPostSurpriseImage4Btn" style="margin-top:4px; background:#00a8cc;">
+        🖼️ 4枚目へ切り替え
+      </button>
+    </div>
+
     <div class="controls-row" style="margin-top:6px;">
       <span>右下に半透明小窓表示 (PIP):</span>
       <input type="checkbox" id="videoPipToggle">
@@ -4975,6 +5007,16 @@
     const mediaImageFileInput = document.getElementById('mediaImageFileInput');
     const mediaImageUrlInput = document.getElementById('mediaImageUrlInput');
     const surpriseWallpaper2FileInput = document.getElementById('surpriseWallpaper2FileInput');
+
+    // 特別演出後に切り替える画像（3枚目・4枚目）
+    const switchPostSurpriseBgBtn = document.getElementById('switchPostSurpriseBgBtn');
+    const postSurpriseImage3FileInput = document.getElementById('postSurpriseImage3FileInput');
+    const switchPostSurpriseImage3Btn = document.getElementById('switchPostSurpriseImage3Btn');
+    const postSurpriseImage4FileInput = document.getElementById('postSurpriseImage4FileInput');
+    const switchPostSurpriseImage4Btn = document.getElementById('switchPostSurpriseImage4Btn');
+
+    let postSurpriseImage3Url = '';
+    let postSurpriseImage4Url = '';
     const surpriseWallpaper2Path = document.getElementById('surpriseWallpaper2Path');
     const idleSurpriseWavPath = document.getElementById('idleSurpriseWavPath');
     const idleSurpriseWavVolume = document.getElementById('idleSurpriseWavVolume');
@@ -5054,6 +5096,84 @@
       if (e.target.value.trim()) {
         localBgImagePlayer.src = e.target.value.trim();
       }
+    });
+
+    // 特別演出後の画像切り替え。
+    // 「青丸」の背景画像ファイル、3枚目、4枚目をボタンで切り替えます。
+    function switchToPostSurpriseImage(src, label) {
+      if (!src) {
+        alert(`${label}の画像が選択されていません。`);
+        return;
+      }
+
+      if (idleSurpriseWallpaper2) {
+        idleSurpriseWallpaper2.style.display = 'none';
+      }
+
+      if (videoDisplayArea) {
+        videoDisplayArea.style.display = 'block';
+        videoDisplayArea.classList.remove('pip-mode');
+      }
+
+      try {
+        localVideoPlayer.pause();
+      } catch (_) {}
+
+      const ytElem = document.getElementById('ytVideoPlayer');
+      if (ytElem) ytElem.style.display = 'none';
+      localVideoPlayer.style.display = 'none';
+
+      localBgImagePlayer.src = src;
+      localBgImagePlayer.style.display = 'block';
+
+      isVideoPlaying = true;
+      if (videoToggleBtn) {
+        videoToggleBtn.textContent = `⏸️ ${label}: ON`;
+        videoToggleBtn.style.background = '#00f3ff';
+        videoToggleBtn.style.color = '#000';
+      }
+    }
+
+    switchPostSurpriseBgBtn?.addEventListener('click', () => {
+      const file = mediaImageFileInput?.files?.[0];
+      if (file) {
+        switchToPostSurpriseImage(URL.createObjectURL(file), '背景画像');
+        return;
+      }
+
+      const url = (mediaImageUrlInput?.value || '').trim();
+      if (url) {
+        switchToPostSurpriseImage(url, '背景画像');
+        return;
+      }
+
+      alert('「背景画像ファイルを選択」で画像を選択してください。');
+    });
+
+    postSurpriseImage3FileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (postSurpriseImage3Url) {
+        try { URL.revokeObjectURL(postSurpriseImage3Url); } catch (_) {}
+      }
+      postSurpriseImage3Url = URL.createObjectURL(file);
+    });
+
+    switchPostSurpriseImage3Btn?.addEventListener('click', () => {
+      switchToPostSurpriseImage(postSurpriseImage3Url, '3枚目');
+    });
+
+    postSurpriseImage4FileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (postSurpriseImage4Url) {
+        try { URL.revokeObjectURL(postSurpriseImage4Url); } catch (_) {}
+      }
+      postSurpriseImage4Url = URL.createObjectURL(file);
+    });
+
+    switchPostSurpriseImage4Btn?.addEventListener('click', () => {
+      switchToPostSurpriseImage(postSurpriseImage4Url, '4枚目');
     });
 
     // 特別演出用2枚目壁紙。選択したファイルはこのページの実行中に使用します。
