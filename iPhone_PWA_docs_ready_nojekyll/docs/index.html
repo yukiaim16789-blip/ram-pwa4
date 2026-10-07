@@ -5100,47 +5100,58 @@
     // GitHub Pages上のファイル名変更後も、現在のページから実在する画像を自動探索します。
     async function resolveGitHubWallpaper2Path() {
       const configured = (surpriseWallpaper2Path?.value || '').trim();
-      if (configured && !configured.includes('background2.png')) {
-        return configured;
-      }
 
-      const candidates = [
-        'assets/images/特別演出用2枚目の画像.png',
-        'assets/images/特別演出用2枚目の画像.jpg',
-        'assets/images/特別演出用2枚目の画像.jpeg',
-        'assets/images/特別演出用2枚目.png',
-        'assets/images/background2.png'
-      ];
-
-      for (const candidate of candidates) {
-        try {
-          const response = await fetch(candidate, { method: 'HEAD', cache: 'no-store' });
-          if (response.ok) return candidate;
-        } catch (_) {}
-      }
-
-      // GitHub Pagesのリポジトリ一覧から「特別演出用2枚目」を探す。
+      // GitHub Pagesでは、localStorageに残った古いパスを信用せず、
+      // GitHub上の現在のファイル一覧から実在する壁紙を探します。
+      // 「特別演出用2枚目」「background2」を含む画像を優先します。
       try {
         const host = location.hostname;
         const parts = location.pathname.split('/').filter(Boolean);
         if (host.endsWith('.github.io') && parts.length) {
-          const owner = host.split('.')[0];
+          const owner = host.slice(0, -'.github.io'.length);
           const repo = parts[0];
-          const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/assets/images`;
-          const response = await fetch(apiUrl, { cache: 'no-store' });
+          const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/HEAD?recursive=1`;
+          const response = await fetch(apiUrl, {
+            cache: 'no-store',
+            headers: { 'Accept': 'application/vnd.github+json' }
+          });
+
           if (response.ok) {
-            const items = await response.json();
-            const match = items.find(item =>
-              item.type === 'file' &&
-              /\.(png|jpe?g|webp|gif)$/i.test(item.name) &&
-              /特別演出用2枚目|background2/i.test(item.name)
+            const data = await response.json();
+            const files = Array.isArray(data.tree) ? data.tree.filter(item =>
+              item.type === 'blob' && /\.(png|jpe?g|webp|gif)$/i.test(item.path)
+            ) : [];
+
+            const normalized = name => name.normalize('NFKC').toLowerCase();
+            const preferred = files.filter(item =>
+              /(^|\/)assets\/images\//i.test(item.path) &&
+              /(特別演出用2枚目|特別演出用2枚目の画像|background2)/i.test(normalized(item.path))
             );
-            if (match?.name) return `assets/images/${encodeURIComponent(match.name).replace(/%2F/g, '/')}`;
+
+            if (preferred.length) {
+              // パスはGitHub APIが返した実際のパスをそのまま使用する。
+              // encodeURIComponentで日本語ファイル名を壊さない。
+              return preferred[0].path.split('/').map(encodeURIComponent).join('/');
+            }
+
+            // 名前に「2枚目」が含まれない場合でも、assets/images内で
+            // background2.pngだった履歴の代わりに、設定値のパスが実在するか確認。
+            if (configured && !/background2\.png$/i.test(configured)) {
+              const configuredPath = configured.replace(/^\.\//, '');
+              const exists = files.some(item => item.path === decodeURIComponent(configuredPath));
+              if (exists) return configuredPath.split('/').map(encodeURIComponent).join('/');
+            }
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        console.warn('GitHub上の壁紙自動検索に失敗:', e);
+      }
 
-      return configured || 'assets/images/background2.png';
+      // GitHub Pages以外では、明示設定されたパスを使用。
+      if (configured && !/background2\.png$/i.test(configured)) return configured;
+
+      // 最後の既知候補。ここではHEADチェックをせず、404を連続発生させない。
+      return 'assets/images/特別演出用2枚目の画像.png';
     }
 
     async function applyResolvedWallpaper2() {
