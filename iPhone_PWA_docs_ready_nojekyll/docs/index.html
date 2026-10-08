@@ -206,7 +206,77 @@
       text-shadow: 0 1px 4px rgba(0,0,0,0.65);
     }
 
-</style>
+
+    /* 🔐 設定画面は「ramu」と入力するまで非表示 */
+    .settings-toggle-btn.settings-secret-locked {
+      display: none !important;
+    }
+
+    /* 📘 右上のアプリ説明タブ */
+    #appHelpTab {
+      position: fixed;
+      top: 14px;
+      right: 18px;
+      z-index: 10000;
+      padding: 9px 14px;
+      border: 1px solid var(--text-color, #00f3ff);
+      border-radius: 10px;
+      color: var(--text-color, #00f3ff);
+      background: rgba(0, 12, 18, 0.92);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(0,243,255,.18);
+    }
+    #appHelpTab:hover, #appHelpTab:focus-visible {
+      background: var(--text-color, #00f3ff);
+      color: #001014;
+      outline: none;
+    }
+    #appHelpOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      box-sizing: border-box;
+      background: rgba(0,0,0,.76);
+      backdrop-filter: blur(5px);
+    }
+    #appHelpOverlay.is-open { display: flex; }
+    #appHelpDialog {
+      width: min(680px, 100%);
+      max-height: min(82vh, 780px);
+      overflow: auto;
+      box-sizing: border-box;
+      padding: 22px;
+      color: #eafcff;
+      background: linear-gradient(145deg, #081923, #101018 70%);
+      border: 1px solid var(--text-color, #00f3ff);
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0,243,255,.2);
+      line-height: 1.65;
+    }
+    #appHelpDialog h2 { margin: 0 0 12px; color: var(--text-color, #00f3ff); font-size: 1.25rem; }
+    #appHelpDialog h3 { margin: 18px 0 5px; color: #ff4ca4; font-size: 1rem; }
+    #appHelpDialog p { margin: 6px 0; }
+    #appHelpDialog .app-help-close {
+      float: right;
+      padding: 7px 12px;
+      border: 1px solid var(--text-color, #00f3ff);
+      border-radius: 8px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+    }
+    @media (max-width: 600px) {
+      #appHelpTab { top: 10px; right: 10px; font-size: .75rem; padding: 8px 10px; }
+      #appHelpDialog { padding: 16px; }
+    }
+
+  </style>
   <style>
     :root {
       --bg-color: #0b0d19;
@@ -2547,6 +2617,17 @@
       </div>
 
       <div style="margin-top:8px; padding-top:7px; border-top:1px solid #333;">
+        <h4 style="font-size:0.82rem; color:var(--text-color); margin:0 0 5px;">📱💻 スロット2：端末用設定</h4>
+        <div id="devicePresetStatus" style="font-size:.68rem;color:#aaa;margin-bottom:5px;">現在の端末を確認中...</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+          <button id="applyPcPresetBtn" type="button" style="margin:0;">💻 PC用設定</button>
+          <button id="applyIphonePresetBtn" type="button" style="margin:0;">📱 iPhone用設定</button>
+        </div>
+        <button id="applyDetectedPresetBtn" type="button" style="margin-top:5px;width:100%;">🔄 現在の端末設定を適用</button>
+        <div style="font-size:.62rem;color:#888;margin-top:4px;">スロット2にPC用・iPhone用の2つの設定を保存してあります。必要な方を選択できます。</div>
+      </div>
+
+      <div style="margin-top:8px; padding-top:7px; border-top:1px solid #333;">
         <h4 style="font-size:0.82rem; color:var(--text-color); margin:0 0 5px;">💾 10個の設定バックアップ</h4>
         <div style="font-size:.68rem;color:#aaa;margin-bottom:5px;">現在の設定をスロットに保存・復元できます。</div>
         <div id="settingsBackupSlots" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;"></div>
@@ -3047,7 +3128,39 @@
     <div id="ytBgmPlayerHolder"></div>
   </div>
 
-  <script defer src="https://www.youtube.com/iframe_api"></script>
+  <script defer src="https://www.youtube.com/iframe_api">
+    // 📘 アプリ説明タブ：クリック・Esc・背景クリックで閉じる
+    (() => {
+      const tab = document.getElementById('appHelpTab');
+      const overlay = document.getElementById('appHelpOverlay');
+      const dialog = document.getElementById('appHelpDialog');
+      const close = document.getElementById('appHelpClose');
+      if (!tab || !overlay || !dialog || !close) return;
+
+      const openHelp = () => {
+        overlay.classList.add('is-open');
+        tab.setAttribute('aria-expanded', 'true');
+        close.focus();
+      };
+      const closeHelp = () => {
+        overlay.classList.remove('is-open');
+        tab.setAttribute('aria-expanded', 'false');
+        tab.focus();
+      };
+      tab.addEventListener('click', openHelp);
+      close.addEventListener('click', closeHelp);
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeHelp();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
+          closeHelp();
+        }
+      });
+    })();
+
+
+  </script>
 
   <script>
     const MANAGEMENT_PASSWORD = "Mg8#kP9$2x";
@@ -3161,17 +3274,50 @@
     const controlsPanel = document.getElementById('controlsPanel');
     const openSettingsBtn = document.getElementById('openSettingsBtn');
 
+    // 🔐 設定画面は「ramu」と入力したときだけ解禁する。
+    let settingsSecretBuffer = '';
+    let settingsSecretTimer = null;
+    let settingsUnlocked = false;
+
+    function unlockSettingsPanel() {
+      settingsUnlocked = true;
+      openSettingsBtn.classList.remove('settings-secret-locked');
+      openSettingsBtn.style.display = '';
+      settingsSecretBuffer = '';
+      clearTimeout(settingsSecretTimer);
+      // 解禁したことを短く表示（設定画面そのものは自動では開かない）
+      openSettingsBtn.textContent = '⚙️ 設定画面 [Esc]';
+    }
+
     function toggleSettingsPanel() {
+      if (!settingsUnlocked) return;
       controlsPanel.classList.toggle('is-active');
     }
 
+    openSettingsBtn.classList.add('settings-secret-locked');
+    openSettingsBtn.style.display = 'none';
+
     openSettingsBtn.addEventListener('click', (e) => {
+      if (!settingsUnlocked) return;
       e.stopPropagation();
       toggleSettingsPanel();
     });
 
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' || e.key === 'Esc') {
+      const tag = e.target?.tagName;
+      const isTypingField = ['INPUT','TEXTAREA','SELECT'].includes(tag) || e.target?.isContentEditable;
+      if (!isTypingField) {
+        const key = String(e.key || '').toLowerCase();
+        if (key.length === 1 && /[a-z]/.test(key)) {
+          settingsSecretBuffer = (settingsSecretBuffer + key).slice(-4);
+          clearTimeout(settingsSecretTimer);
+          settingsSecretTimer = setTimeout(() => { settingsSecretBuffer = ''; }, 1500);
+          if (settingsSecretBuffer === 'ramu') {
+            unlockSettingsPanel();
+          }
+        }
+      }
+      if ((e.key === 'Escape' || e.key === 'Esc') && settingsUnlocked) {
         toggleSettingsPanel();
       }
     });
@@ -7400,6 +7546,8 @@
       }, durationMs + 150);
     }
 
+    let ramFirstWaitRandomized = false;
+
     function scheduleRamPop() {
       clearTimeout(ramPopTimer);
       if (!ramPopToggle.checked || ramAlwaysToggle.checked) return;
@@ -7409,10 +7557,22 @@
       if (ramDirLeft.checked) directions.push('left');
       if (ramDirRight.checked) directions.push('right');
       if (!directions.length) return;
+
       const direction = directions[Math.floor(Math.random() * directions.length)];
       const cfg = getRamDirectionSettings(direction);
-      const delay = Math.max(0, Number(cfg?.wait?.value ?? ramPopMin.value)) * 1000;
-      ramPopTimer = setTimeout(() => showRamPop(direction), delay);
+
+      let delaySec;
+      if (!ramFirstWaitRandomized) {
+        // アプリを開いた直後の最初の顔出しだけ、設定した最短～最長の範囲からランダム決定。
+        const minSec = Math.max(0, Number(ramPopMin.value) || 0);
+        const maxSec = Math.max(minSec, Number(ramPopMax.value) || minSec);
+        delaySec = minSec + Math.random() * (maxSec - minSec);
+        ramFirstWaitRandomized = true;
+      } else {
+        delaySec = Math.max(0, Number(cfg?.wait?.value ?? ramPopMin.value));
+      }
+
+      ramPopTimer = setTimeout(() => showRamPop(direction), delaySec * 1000);
     }
 
     // ページ読み込み後、設定した表示状態を反映
@@ -7747,10 +7907,105 @@
       }
       return data;
     }
+    // 📱💻 スロット2専用：PC/iPhone設定
+    // アップロードされた2つのJSONを端末プリセットとして内蔵し、スロット2に保持します。
+    const BUILTIN_PC_PRESET = {"format":"momonga-settings","version":1,"exportedAt":"2026-10-08T09:40:35.188Z","settings":{"momonga_custom_theme":{"bg":"#0b0d19","text":"#00f3ff","sub":"#ff0055"},"momonga_voice_list_v2":["talk_01.wav","talk_02.wav"],"momonga_part_configs_v4":{"tail":{"x":0,"y":0,"scale":100,"rotate":0},"ear_l":{"x":174,"y":-226,"scale":80,"rotate":0},"ear_r":{"x":8,"y":-220,"scale":80,"rotate":0},"body":{"x":39,"y":-48,"scale":100,"rotate":0},"mouth":{"x":226,"y":124,"scale":11,"rotate":0},"eye":{"x":273,"y":65,"scale":13,"rotate":0},"hair":{"x":109,"y":-120,"scale":72,"rotate":0},"headband":{"x":46,"y":-197,"scale":100,"rotate":0},"leg_c":{"x":110,"y":136,"scale":90,"rotate":1},"leg_l":{"x":125,"y":228,"scale":43,"rotate":1},"hand_r":{"x":29,"y":10,"scale":90,"rotate":2},"hand_l":{"x":177,"y":-9,"scale":85,"rotate":0}},"momonga_system_feature_settings_v1":{"cpu":true,"memory":true,"timeUptime":true,"network":true,"fps":true,"monitor":true,"clickReaction":true,"randomReaction":true,"preset":true,"ramPop":true,"ramAlways":false,"ramSize":350,"ramRotation":-93,"ramPosX":100,"ramPosY":70,"ramMin":5,"ramMax":10,"ramDuration":1,"ramDirTop":true,"ramDirBottom":true,"ramDirLeft":true,"ramDirRight":true,"ramPosTopX":0,"ramPosTopY":50,"ramPosBottomX":62,"ramPosBottomY":100,"ramPosLeftX":36,"ramPosLeftY":1,"ramPosRightX":100,"ramPosRightY":84,"ramTopSize":420,"ramTopRotation":90,"ramTopDuration":3.2,"ramTopWait":123,"ramBottomSize":420,"ramBottomRotation":0,"ramBottomDuration":4,"ramBottomWait":34,"ramLeftSize":420,"ramLeftRotation":-180,"ramLeftDuration":5.1,"ramLeftWait":95,"ramRightSize":420,"ramRightRotation":-90,"ramRightDuration":4.2,"ramRightWait":48,"gaze":false,"gazeFollow":false,"gazeDistance":350,"gazeStrength":8,"gazeStrengthNarrowedV2":true,"gazeBrowX":0,"gazeBrowY":-9,"gazeClickReaction":true,"ramPosTop":48,"ramPosBottom":67,"ramPosLeft":58,"ramPosRight":72},"momonga_idle_state_settings_v2":{"enabled":true,"fine":60,"half":120,"close":30,"dots":false,"zzz":true,"floating":true,"dim":true},"momonga_custom_knowledge":[{"keywords":["好きな食べ物は？"],"response":"もちです","suggestions":[]},{"keywords":["どんな配信をしていますか？"],"response":"主にフォートナイトをやっているのだ","suggestions":[]},{"keywords":["主はどこにいった？"],"response":"ごはんかお風呂中なのだ","suggestions":[]}],"momonga_part_params":{"eye":{"x":0,"y":0,"scale":47,"rotate":0},"mouth":{"x":0,"y":0,"scale":84,"rotate":0},"body":{"x":0,"y":0,"scale":92,"rotate":0},"hair":{"x":0,"y":0,"scale":29,"rotate":0},"headband":{"x":0,"y":0,"scale":170,"rotate":0},"headless":{"x":0,"y":0,"scale":97,"rotate":0},"ear_l":{"x":0,"y":0,"scale":192,"rotate":0},"ear_r":{"x":0,"y":0,"scale":100,"rotate":0},"tail":{"x":0,"y":0,"scale":100,"rotate":0},"leg_c":{"x":0,"y":0,"scale":100,"rotate":0},"leg_l":{"x":-52,"y":47,"scale":100,"rotate":0},"hand_r":{"x":0,"y":0,"scale":100,"rotate":0},"hand_l":{"x":0,"y":0,"scale":100,"rotate":0}},"momonga_custom_bg":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCADeAZADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDu80Zoor+HrH+cdwzRmiiiwXDNGaKKLBcM0ZooosFwzRmiiiwXDNGaKKLBcM0ZooosFwzRmiiiwXDNGaKKLBcM0ZooosFwzRmiiiwXDNGaKKLBcM0ZooosFwzRmiiiwXDNGaKKLBcM0ZooosFwzRmiiiwXDNGaKKLBcM0ZooosFwzRmiiiwXDNGaKKLBcM0ZooosFwzRmiiiwXDNGaKKLBcM0ZooosFwooopiCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooATIoyKbRQOw7IoyKbRQFh9FJkUZFAgyKWmU+gGFFJkUtABRSZFGRQAtFFJkUALRSZFGRQAtFJkUZFAC0UmRRkUALRSZFGRQAtFJkUZFAC0UmRRkUALSZFGRTaB2HZFGRTaKAsOyKMim0UBYdkUZFNooCw7IoyKbRQFh2RRkU2igLDsijIptFAWHZFGRTaKAsOyKMim0UBYdkUZFNooCw7IoyKbRQFh2RRkU2igLBRS4NGDQMSilwaMGgBKKXBowaAEp9NwadQJjKdkUmDRg0AGDSU+m4NAXHU3Bp1FAhuDRg06igdxuDRg06igLjcGjBp1FAXG4NGDTqKAuNwaMGnUUBcbg0YNOooC43BpKfTcGgLiUUuDRg0DEopcGjBoASilwaMGgBKKXBowaAEopcGjBoASilwaMGgBKKXBowaAEopcGjBoASilwaMGgBKKXBowaAEopcGjBoAXIoyKTBowaBWQuRRkUmDRg0BZC5FGRSYNGDQFkLkUtNwadQITIpabg06gApMilpuDQA6iiigAooooAKKKKACiiigAooooAKKKKACiiigApMilpuDQAuRRkUmDRg0DshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIXIoyKTBowaAshcijIpMGjBoCyFyKMikwaMGgLIdRSZFGRQIWiikyKAFopMijIoAWikyKWgAooooAKKKKACiiigAooooAKKKKACikyKWgAooooAKKKTIoAWiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigBuDRg0uRRkUDuxabg0uRRkUCEwaMGnUUDuNwadRRQIKKKKACiiigAooooAKKKKACiiigBuDTqKKACiiigApuDTqKACiiigAoopMigBaKKKACikyKWgAopMiloAKKKTIoAWiikyKAFooooAKKTIpaACikyKWgAoopMigBaKKTIoAWiiigBuDRg06igdxuDRg06igLhRRRQIKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACm4NOooAKKKKAG4NOoooAbg06iigApuDTqKACm4NOooAKKKKAG4NOoooAbg06iigApuDTqKACm4NOooAKKKKACikyKMigBaKTIoyKAFopMijIoAWikyKWgAopMiloAKKTIoyKAFoopMigBaKKKACiiigAooooAKKKKACiiigAooooAKKKTIoAWikyKMigBaKTIoyKAFopMijIoAWikyKMigBaKTIoyKAFopMijIoAWikyKMigBaKTIoyKAFopMijIoAWikyKMigBaKTIoyKAG0UuDRg0FCUUuDRg0AJRS4NGDQAlOyKTBowaBCU7IpMGjBoASilwaMGgYuRSYNGDTqBbBRRRQIKKKKACiiigAooooAKKKKACiiigAplPpuDQNCUUuDRg0DEopcGjBoASilwaMGgBKKXBowaAEopcGjBoASilwaMGgBKKXBowaAEopcGjBoASilwaMGgBKKXBowaAEopcGjBoAdRRRWns59i/ZsKTIpabxR7OfYPZsdRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZsKKKKPZz7B7NhRRRR7OfYPZs//Z","momonga_idle_surprise_wallpaper2_name":"特別演出用2枚目.png","momonga_part_locks":{"body":false,"eye":false,"mouth":false,"hair":false,"headband":false,"headless":false,"ear_l":false,"ear_r":false,"hand_r":false,"hand_l":false,"leg_c":false,"leg_l":false,"tail":false},"momonga_voice_list":["sound.wav","talk_01.wav"],"momonga_idle_surprise_wav_volume":100,"momonga_part_transforms":{"eye":{"x":0,"y":0,"scale":108,"rotate":0},"mouth":{"x":295,"y":303,"scale":98,"rotate":0},"body":{"x":39,"y":-48,"scale":115,"rotate":0},"hair":{"x":25,"y":-138,"scale":53,"rotate":-10},"headband":{"x":-82,"y":336,"scale":82,"rotate":0},"headless":{"x":-38,"y":-4,"scale":77,"rotate":0},"ear_l":{"x":-648,"y":175,"scale":77,"rotate":0},"ear_r":{"x":402,"y":115,"scale":100,"rotate":0},"tail":{"x":0,"y":0,"scale":134,"rotate":0},"leg_c":{"x":-609,"y":-171,"scale":100,"rotate":0},"leg_l":{"x":-126,"y":645,"scale":100,"rotate":0},"hand_r":{"x":542,"y":33,"scale":100,"rotate":0},"hand_l":{"x":-521,"y":177,"scale":100,"rotate":0}},"momonga_part_configs_jp":{"tail":{"x":-10,"y":15,"scale":100},"ear_l":{"x":174,"y":-226,"scale":80},"ear_r":{"x":8,"y":-220,"scale":80},"body":{"x":39,"y":-48,"scale":100},"eye":{"x":273,"y":65,"scale":13},"hair":{"x":109,"y":-120,"scale":72},"headband":{"x":46,"y":-197,"scale":100},"leg_c":{"x":110,"y":136,"scale":90},"leg_l":{"x":125,"y":228,"scale":43},"hand_r":{"x":36,"y":10,"scale":85},"hand_l":{"x":177,"y":-9,"scale":85},"mouth":{"x":226,"y":124,"scale":11}},"momonga_group_pos":{"x":178,"y":174,"scale":100},"momonga_afk_config":{"scale":31,"animEnabled":true,"parts":{"building":{"x":0,"y":0},"tail_2":{"x":0,"y":0},"leg_l":{"x":0,"y":0},"leg_c":{"x":0,"y":0},"body":{"x":0,"y":0},"hand_l_2":{"x":0,"y":0},"hand_r_2":{"x":0,"y":0},"hair_2":{"x":0,"y":0},"ear_l_2":{"x":0,"y":0},"ear_r_2":{"x":0,"y":0},"headband_2":{"x":0,"y":0},"eye":{"x":0,"y":0},"mouth":{"x":0,"y":0}}},"momonga_qa_box_visible":1,"momonga_group_transform":{"x":0,"y":0,"scale":100},"momonga_reaction_part_lock":1,"momonga_part_lock_state":{"body":false,"eye":false,"mouth":false,"hair":false,"headband":false,"ear_l":false,"ear_r":false,"hand_r":false,"hand_l":false,"leg_c":false,"leg_l":false,"tail":false},"momonga_start_time":1790258712861,"momonga_parts_data":{"eye":{"x":403,"y":-42,"scale":13,"rotate":0,"locked":false},"mouth":{"x":84,"y":157,"scale":11,"rotate":0,"locked":false},"body":{"x":39,"y":-48,"scale":100,"rotate":0,"locked":false},"hair":{"x":300,"y":-120,"scale":72,"rotate":0,"locked":false},"headband":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"ear_l":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"ear_r":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"tail":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"leg_c":{"x":0,"y":-1,"scale":100,"rotate":0,"locked":false},"leg_l":{"x":-1673,"y":517,"scale":53,"rotate":0,"locked":false},"hand_r":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"hand_l":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false}},"momonga_reaction_part_configs_v1":{"eye":{"x":88,"y":-88,"scale":45,"rotate":0},"sweatLeft":{"x":-35,"y":-20,"scale":182,"rotate":180},"mark":{"x":0,"y":0,"scale":100,"rotate":0},"lightningTop":{"x":12,"y":-58,"scale":119,"rotate":0},"sweatRight":{"x":13,"y":-95,"scale":154,"rotate":0},"sweatRightBottom":{"x":37,"y":-226,"scale":196,"rotate":-27},"lightningLeftBottom":{"x":67,"y":-207,"scale":147,"rotate":0},"lightningRightBottom":{"x":47,"y":-186,"scale":146,"rotate":0}},"momonga_part_lock_states":{"body":false,"eye":false,"mouth":false,"hair":false,"headband":false,"headless":false,"ear_l":false,"ear_r":false,"hand_r":false,"hand_l":false,"leg_c":false,"leg_l":false,"tail":false},"momonga_parts_transform":{"eye":{"x":553,"y":54,"scale":98,"rotate":0},"mouth":{"x":226,"y":124,"scale":11,"rotate":0},"body":{"x":39,"y":-48,"scale":83,"rotate":0},"hair":{"x":110,"y":-120,"scale":63,"rotate":-42},"headband":{"x":0,"y":0,"scale":78,"rotate":0},"leg_l":{"x":-370,"y":199,"scale":100,"rotate":0},"hand_r":{"x":-117,"y":37,"scale":100,"rotate":0}},"momonga_theme":"theme-cyber","momonga_bgm_url":"https://www.youtube.com/watch?v=tdEdtwRfnGU","momonga_parts_transforms":{"body":{"x":0,"y":0,"scale":127,"rotate":0},"eye":{"x":0,"y":0,"scale":86,"rotate":0},"mouth":{"x":0,"y":0,"scale":109,"rotate":0},"hair":{"x":0,"y":0,"scale":127,"rotate":0},"headband":{"x":0,"y":0,"scale":93,"rotate":0},"ear_l":{"x":0,"y":0,"scale":110,"rotate":0},"ear_r":{"x":0,"y":0,"scale":200,"rotate":0},"tail":{"x":0,"y":0,"scale":100,"rotate":0},"leg_c":{"x":0,"y":0,"scale":153,"rotate":0},"leg_l":{"x":1112,"y":0,"scale":103,"rotate":66},"hand_r":{"x":0,"y":0,"scale":121,"rotate":0},"hand_l":{"x":0,"y":0,"scale":137,"rotate":0},"headless":{"x":0,"y":0,"scale":140,"rotate":0}},"momonga_voicevox_url":"http://localhost:50021","momonga_bgm_volume":30,"momonga_bgm_loop":true,"momonga_global_part_lock":1,"momonga_voice_list_v3":["talk_01.wav","talk_02.wav"],"momonga_voicevox_speaker_id":3,"momonga_custom_qa_editor_visible":1,"momonga_hand_wave_config":{"enabled":true,"offset":180,"angle":25,"interval":5,"duration":3,"speed":0.8},"momonga_locked_parts":{"body":true,"eye":true,"hair":true,"mouth":true,"headband":true,"ear_r":true,"hand_r":true,"ear_l":true,"leg_c":true,"hand_l":true,"leg_l":true,"tail":true},"momonga_parts_locks":{"body":false,"eye":false,"mouth":false,"hair":false,"headband":false,"ear_l":false,"ear_r":false,"tail":false,"leg_c":false,"leg_l":false,"hand_r":false,"hand_l":false,"headless":false}}};
+    const BUILTIN_IPHONE_PRESET = {"format":"momonga-settings","version":1,"exportedAt":"2026-10-07T15:37:49.841Z","settings":{"momonga_parts_data":{"eye":{"x":403,"y":-42,"scale":13,"rotate":0,"locked":false},"mouth":{"x":84,"y":157,"scale":11,"rotate":0,"locked":false},"body":{"x":39,"y":-48,"scale":100,"rotate":0,"locked":false},"hair":{"x":300,"y":-120,"scale":72,"rotate":0,"locked":false},"headband":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"ear_l":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"ear_r":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"tail":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"leg_c":{"x":0,"y":-1,"scale":100,"rotate":0,"locked":false},"leg_l":{"x":-1673,"y":517,"scale":53,"rotate":0,"locked":false},"hand_r":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false},"hand_l":{"x":0,"y":0,"scale":100,"rotate":0,"locked":false}},"momonga_voice_list_v3":["talk_01.wav","talk_02.wav"],"momonga_part_configs_jp":{"tail":{"x":-10,"y":15,"scale":100},"ear_l":{"x":174,"y":-226,"scale":80},"ear_r":{"x":8,"y":-220,"scale":80},"body":{"x":39,"y":-48,"scale":100},"eye":{"x":273,"y":65,"scale":13},"hair":{"x":109,"y":-120,"scale":72},"headband":{"x":46,"y":-197,"scale":100},"leg_c":{"x":110,"y":136,"scale":90},"leg_l":{"x":125,"y":228,"scale":43},"hand_r":{"x":36,"y":10,"scale":85},"hand_l":{"x":177,"y":-9,"scale":85},"mouth":{"x":226,"y":124,"scale":11}},"momonga_theme":"theme-cyber","momonga_voice_list":["sound.wav","talk_01.wav"],"momonga_idle_surprise_wallpaper2_name":"IMG_0625.png","momonga_afk_config":{"scale":31,"animEnabled":true,"parts":{"building":{"x":0,"y":0},"tail_2":{"x":0,"y":0},"leg_l":{"x":0,"y":0},"leg_c":{"x":0,"y":0},"body":{"x":0,"y":0},"hand_l_2":{"x":0,"y":0},"hand_r_2":{"x":0,"y":0},"hair_2":{"x":0,"y":0},"ear_l_2":{"x":0,"y":0},"ear_r_2":{"x":0,"y":0},"headband_2":{"x":0,"y":0},"eye":{"x":0,"y":0},"mouth":{"x":0,"y":0}}},"momonga_part_lock_state":{"body":false,"eye":false,"mouth":false,"hair":false,"headband":false,"ear_l":false,"ear_r":false,"hand_r":false,"hand_l":false,"leg_c":false,"leg_l":false,"tail":false},"momonga_voicevox_url":"http://localhost:50021","momonga_global_part_lock":1,"momonga_group_pos":{"x":-4.89333347945751,"y":99.66000043315356,"scale":62},"momonga_voice_list_v2":["talk_01.wav","talk_02.wav"],"momonga_part_configs_v4":{"tail":{"x":0,"y":0,"scale":100,"rotate":0},"ear_l":{"x":174,"y":-226,"scale":80,"rotate":0},"ear_r":{"x":8,"y":-220,"scale":80,"rotate":0},"body":{"x":39,"y":-48,"scale":100,"rotate":0},"mouth":{"x":226,"y":124,"scale":11,"rotate":0},"eye":{"x":273,"y":65,"scale":13,"rotate":0},"hair":{"x":109,"y":-120,"scale":72,"rotate":0},"headband":{"x":46,"y":-197,"scale":100,"rotate":0},"leg_c":{"x":110,"y":136,"scale":90,"rotate":1},"leg_l":{"x":125,"y":228,"scale":43,"rotate":1},"hand_r":{"x":29,"y":10,"scale":90,"rotate":2},"hand_l":{"x":177,"y":-9,"scale":85,"rotate":0}},"momonga_parts_transform":{"eye":{"x":553,"y":54,"scale":98,"rotate":0},"mouth":{"x":226,"y":124,"scale":11,"rotate":0},"body":{"x":39,"y":-48,"scale":83,"rotate":0},"hair":{"x":110,"y":-120,"scale":63,"rotate":-42},"headband":{"x":0,"y":0,"scale":78,"rotate":0},"leg_l":{"x":-370,"y":199,"scale":100,"rotate":0},"hand_r":{"x":-117,"y":37,"scale":100,"rotate":0}},"momonga_voicevox_speaker_id":3,"momonga_custom_knowledge":[{"keywords":["好きな食べ物は？"],"response":"もちです","suggestions":[]},{"keywords":["どんな配信をしていますか？"],"response":"主にフォートナイトをやっているのだ","suggestions":[]},{"keywords":["主はどこにいった？"],"response":"ごはんかお風呂中なのだ","suggestions":[]}],"momonga_part_params":{"eye":{"x":0,"y":0,"scale":47,"rotate":0},"mouth":{"x":0,"y":0,"scale":84,"rotate":0},"body":{"x":0,"y":0,"scale":92,"rotate":0},"hair":{"x":0,"y":0,"scale":29,"rotate":0},"headband":{"x":0,"y":0,"scale":170,"rotate":0},"headless":{"x":0,"y":0,"scale":97,"rotate":0},"ear_l":{"x":0,"y":0,"scale":192,"rotate":0},"ear_r":{"x":0,"y":0,"scale":100,"rotate":0},"tail":{"x":0,"y":0,"scale":100,"rotate":0},"leg_c":{"x":0,"y":0,"scale":100,"rotate":0},"leg_l":{"x":-52,"y":47,"scale":100,"rotate":0},"hand_r":{"x":0,"y":0,"scale":100,"rotate":0},"hand_l":{"x":0,"y":0,"scale":100,"rotate":0}},"momonga_group_transform":{"x":0,"y":0,"scale":100},"momonga_part_transforms":{"eye":{"x":0,"y":0,"scale":108,"rotate":0},"mouth":{"x":295,"y":303,"scale":98,"rotate":0},"body":{"x":39,"y":-48,"scale":115,"rotate":0},"hair":{"x":25,"y":-138,"scale":53,"rotate":-10},"headband":{"x":-82,"y":336,"scale":82,"rotate":0},"headless":{"x":-38,"y":-4,"scale":77,"rotate":0},"ear_l":{"x":-648,"y":175,"scale":77,"rotate":0},"ear_r":{"x":402,"y":115,"scale":100,"rotate":0},"tail":{"x":0,"y":0,"scale":134,"rotate":0},"leg_c":{"x":-609,"y":-171,"scale":100,"rotate":0},"leg_l":{"x":-126,"y":645,"scale":100,"rotate":0},"hand_r":{"x":542,"y":33,"scale":100,"rotate":0},"hand_l":{"x":-521,"y":177,"scale":100,"rotate":0}},"momonga_locked_parts":{"body":true,"eye":true,"hair":true,"mouth":true,"headband":true,"ear_r":true,"hand_r":true,"ear_l":true,"leg_c":true,"hand_l":true,"leg_l":true,"tail":true},"momonga_bgm_volume":50,"momonga_hand_wave_config":{"enabled":true,"offset":180,"angle":25,"interval":5,"duration":3,"speed":0.8},"momonga_bgm_url":"https://www.youtube.com/watch?v=jfKfPfyJRdk","momonga_qa_box_visible":1,"momonga_idle_state_settings_v2":{"enabled":true,"fine":60,"half":120,"close":180,"dots":false,"zzz":true,"floating":true,"dim":true},"momonga_reaction_part_lock":1,"momonga_part_lock_states":{"body":false,"eye":false,"mouth":false,"hair":false,"headband":false,"headless":false,"ear_l":false,"ear_r":false,"hand_r":false,"hand_l":false,"leg_c":false,"leg_l":false,"tail":false},"momonga_parts_transforms":{"body":{"x":0,"y":0,"scale":127,"rotate":0},"eye":{"x":0,"y":0,"scale":86,"rotate":0},"mouth":{"x":0,"y":0,"scale":109,"rotate":0},"hair":{"x":0,"y":0,"scale":127,"rotate":0},"headband":{"x":0,"y":0,"scale":93,"rotate":0},"ear_l":{"x":0,"y":0,"scale":110,"rotate":0},"ear_r":{"x":0,"y":0,"scale":200,"rotate":0},"tail":{"x":0,"y":0,"scale":100,"rotate":0},"leg_c":{"x":0,"y":0,"scale":153,"rotate":0},"leg_l":{"x":1112,"y":0,"scale":103,"rotate":66},"hand_r":{"x":0,"y":0,"scale":121,"rotate":0},"hand_l":{"x":0,"y":0,"scale":137,"rotate":0},"headless":{"x":0,"y":0,"scale":140,"rotate":0}},"momonga_parts_locks":{"body":false,"eye":false,"mouth":false,"hair":false,"headband":false,"ear_l":false,"ear_r":false,"tail":false,"leg_c":false,"leg_l":false,"hand_r":false,"hand_l":false,"headless":false},"momonga_custom_qa_editor_visible":1,"momonga_custom_theme":{"bg":"#0b0d19","text":"#00f3ff","sub":"#ff0055"},"momonga_part_locks":{"body":false,"eye":false,"mouth":false,"hair":false,"headband":false,"headless":false,"ear_l":false,"ear_r":false,"hand_r":false,"hand_l":false,"leg_c":false,"leg_l":false,"tail":false},"momonga_reaction_part_configs_v1":{"eye":{"x":88,"y":-88,"scale":45,"rotate":0},"sweatLeft":{"x":-35,"y":-20,"scale":182,"rotate":180},"mark":{"x":0,"y":0,"scale":100,"rotate":0},"lightningTop":{"x":12,"y":-58,"scale":119,"rotate":0},"sweatRight":{"x":13,"y":-95,"scale":154,"rotate":0},"sweatRightBottom":{"x":37,"y":-226,"scale":196,"rotate":-27},"lightningLeftBottom":{"x":67,"y":-207,"scale":147,"rotate":0},"lightningRightBottom":{"x":47,"y":-186,"scale":146,"rotate":0}},"momonga_system_feature_settings_v1":{"cpu":false,"memory":false,"timeUptime":false,"network":false,"fps":false,"monitor":false,"clickReaction":false,"randomReaction":false,"preset":true,"ramPop":true,"ramAlways":false,"ramSize":280,"ramRotation":-93,"ramPosX":100,"ramPosY":70,"ramMin":120,"ramMax":180,"ramDuration":1.8,"ramDirTop":false,"ramDirBottom":false,"ramDirLeft":true,"ramDirRight":false,"ramPosTopX":28,"ramPosTopY":0,"ramPosBottomX":44,"ramPosBottomY":100,"ramPosLeftX":0,"ramPosLeftY":58,"ramPosRightX":100,"ramPosRightY":69,"ramTopSize":290,"ramTopRotation":180,"ramTopDuration":3.2,"ramTopWait":60,"ramBottomSize":230,"ramBottomRotation":0,"ramBottomDuration":3.2,"ramBottomWait":99,"ramLeftSize":230,"ramLeftRotation":90,"ramLeftDuration":2,"ramLeftWait":104,"ramRightSize":230,"ramRightRotation":-87,"ramRightDuration":3.2,"ramRightWait":81,"gaze":false,"gazeFollow":false,"gazeDistance":350,"gazeStrength":8,"gazeStrengthNarrowedV2":true,"gazeBrowX":0,"gazeBrowY":-9,"gazeClickReaction":true,"ramPosTop":48,"ramPosBottom":67,"ramPosLeft":58,"ramPosRight":72},"momonga_start_time":1790258712861}};
+    const devicePresetStatus = document.getElementById('devicePresetStatus');
+    const applyPcPresetBtn = document.getElementById('applyPcPresetBtn');
+    const applyIphonePresetBtn = document.getElementById('applyIphonePresetBtn');
+    const applyDetectedPresetBtn = document.getElementById('applyDetectedPresetBtn');
+    const DEVICE_PRESET_SLOT_KEY = backupPrefix + '2';
+
+    function getDetectedDevicePreset() {
+      const ua = navigator.userAgent || '';
+      return /iPhone|iPod/i.test(ua) ? 'iphone' : 'pc';
+    }
+
+    function getDevicePresetLabel(type) {
+      return type === 'iphone' ? '📱 iPhone' : '💻 PC';
+    }
+
+    function ensureDevicePresetSlot2() {
+      let current = null;
+      try { current = JSON.parse(localStorage.getItem(DEVICE_PRESET_SLOT_KEY) || 'null'); } catch (_) {}
+      if (!current || !current.devicePresets) {
+        const legacySettings = current?.settings || null;
+        current = {
+          savedAt: new Date().toLocaleString('ja-JP'),
+          devicePresets: {
+            pc: BUILTIN_PC_PRESET.settings || BUILTIN_PC_PRESET,
+            iphone: BUILTIN_IPHONE_PRESET.settings || BUILTIN_IPHONE_PRESET
+          }
+        };
+        if (legacySettings) current.legacySettings = legacySettings;
+        localStorage.setItem(DEVICE_PRESET_SLOT_KEY, JSON.stringify(current));
+      }
+      return current;
+    }
+
+    function applyDevicePreset(type, reload = true) {
+      const slot = ensureDevicePresetSlot2();
+      const settings = slot?.devicePresets?.[type];
+      if (!settings || typeof settings !== 'object') return false;
+      try {
+        Object.keys(settings).forEach(key => {
+          if (!key || key.startsWith(backupPrefix)) return;
+          const value = settings[key];
+          localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+        });
+        localStorage.setItem('momonga_device_profile_applied', type);
+        if (reload) location.reload();
+        return true;
+      } catch (e) {
+        console.warn('端末設定の適用に失敗:', e);
+        return false;
+      }
+    }
+
+    function updateDevicePresetStatus() {
+      const detected = getDetectedDevicePreset();
+      if (devicePresetStatus) {
+        devicePresetStatus.textContent = `現在の端末：${getDevicePresetLabel(detected)} ／ スロット2にPC・iPhone設定を保存済み`;
+      }
+      ensureDevicePresetSlot2();
+    }
+
+    applyPcPresetBtn?.addEventListener('click', () => applyDevicePreset('pc'));
+    applyIphonePresetBtn?.addEventListener('click', () => applyDevicePreset('iphone'));
+    applyDetectedPresetBtn?.addEventListener('click', () => applyDevicePreset(getDetectedDevicePreset()));
+
+    function autoApplyDetectedDevicePreset() {
+      const detected = getDetectedDevicePreset();
+      const applied = localStorage.getItem('momonga_device_profile_applied');
+      if (applied !== detected) {
+        // 初回利用時、またはPC↔iPhoneを切り替えたときだけ自動適用。
+        applyDevicePreset(detected);
+        return true;
+      }
+      return false;
+    }
+
+    ensureDevicePresetSlot2();
+    updateDevicePresetStatus();
+
     function renderBackupSlots() {
       if (!backupSlotsEl) return;
       backupSlotsEl.innerHTML = '';
       for (let i=1;i<=10;i++) {
+        if (i === 2) {
+          const box = document.createElement('div');
+          box.style.cssText='border:1px solid var(--text-color);border-radius:5px;padding:5px;background:rgba(0,243,255,.04);grid-column:1/-1';
+          const title=document.createElement('div');
+          title.style.cssText='font-size:.72rem;font-weight:bold;margin-bottom:4px;color:var(--text-color)';
+          title.textContent='スロット2：PC / iPhone 端末設定';
+          const info=document.createElement('div');
+          info.style.cssText='font-size:.58rem;color:#aaa;min-height:18px';
+          info.textContent='PC用設定とiPhone用設定をここで切り替えます。';
+          box.append(title,info);
+          backupSlotsEl.appendChild(box);
+          continue;
+        }
         const raw = localStorage.getItem(backupPrefix+i);
         let meta = null; try { meta = raw ? JSON.parse(raw) : null; } catch(e) {}
         const box = document.createElement('div');
@@ -7909,10 +8164,39 @@
     });
 
     loadIdleSettings();
-    renderBackupSlots();
+    // 端末が変わった場合だけスロット2の端末設定を自動適用する。
+    // location.reload() が走った場合はこの処理から先へ進まない。
+    if (!autoApplyDetectedDevicePreset()) {
+      renderBackupSlots();
+    }
     setTimeout(() => { syncIdleEyePositions(); setIdleEyeState(0); scheduleIdleStateTimer(); }, 200);
 
 </script>
+
+  <!-- 📘 アプリ説明タブ -->
+  <button id="appHelpTab" type="button" aria-haspopup="dialog" aria-controls="appHelpOverlay">
+    📘 アプリ説明
+  </button>
+
+  <div id="appHelpOverlay" role="presentation">
+    <section id="appHelpDialog" role="dialog" aria-modal="true" aria-labelledby="appHelpTitle" tabindex="-1">
+      <button class="app-help-close" id="appHelpClose" type="button">閉じる ✕</button>
+      <h2 id="appHelpTitle">🐭 ももんがカスタマイズアプリ</h2>
+      <p>キャラクター・背景・音声・特別演出を自由に設定して、自分好みの画面を作れるアプリです。</p>
+
+      <h3>📖 使い方</h3>
+      <p><strong>① キャラクターを楽しむ</strong><br>画面上のキャラクターの表情や動きを楽しめます。設定画面から関連する機能を調整できます。</p>
+      <p><strong>② 背景を変更する</strong><br>設定画面の「背景・演出用メディア設定」から背景画像を選択します。</p>
+      <p><strong>③ キャラクターや背景を調整する</strong><br>対応する操作では、スマートフォンのタッチ操作で位置を移動できます。サイズ調整の項目がある場合は、そちらも利用してください。</p>
+      <p><strong>④ 音声・BGMを設定する</strong><br>設定画面で音声ファイルや音量を設定します。音が出ない場合は、画面上の音声有効化ボタンを押してください。</p>
+      <p><strong>⑤ 特別演出を設定する</strong><br>特別演出のON/OFFや演出用画像を設定できます。画像の切り替え機能は、設定した画像とON/OFFの状態に従って動作します。</p>
+      <p><strong>⑥ 設定画面を開く</strong><br>画面右下の「⚙️ 設定画面」ボタンを押します。設定を閉じるときは、画面の案内に従うかEscキーを押してください。</p>
+
+      <h3>💡 ヒント</h3>
+      <p>まず背景を選び、キャラクターの位置を調整してから、音声や特別演出を設定するとスムーズです。</p>
+    </section>
+  </div>
+
   <div id="currentYoutubeTitle" aria-live="polite"></div>
 </body>
 </html>
