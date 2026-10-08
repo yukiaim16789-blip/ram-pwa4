@@ -258,6 +258,40 @@
     #appHelpDialog h3 { margin: 18px 0 5px; color: #ff4ca4; font-size: 1rem; }
     #appHelpDialog p { margin: 6px 0; }
     #appHelpDialog code { word-break: break-word; }
+    /* 📘 UIごとに説明を分けて開閉できる説明欄 */
+    #appHelpDialog .app-help-section {
+      margin: 10px 0;
+      border: 1px solid rgba(0,243,255,.28);
+      border-radius: 9px;
+      background: rgba(255,255,255,.035);
+      overflow: hidden;
+    }
+    #appHelpDialog .app-help-section > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 11px 13px;
+      color: #eafcff;
+      font-weight: 700;
+      font-size: .92rem;
+      background: rgba(0,243,255,.055);
+      user-select: none;
+    }
+    #appHelpDialog .app-help-section > summary::-webkit-details-marker { display: none; }
+    #appHelpDialog .app-help-section > summary::after {
+      content: '+';
+      float: right;
+      color: var(--text-color, #00f3ff);
+      font-size: 1.1rem;
+      margin-left: 10px;
+    }
+    #appHelpDialog .app-help-section[open] > summary::after { content: '−'; }
+    #appHelpDialog .app-help-section > summary:hover,
+    #appHelpDialog .app-help-section[open] > summary {
+      background: rgba(0,243,255,.12);
+    }
+    #appHelpDialog .app-help-section-content { padding: 5px 13px 13px; }
+    #appHelpDialog .app-help-section-content p { margin: 8px 0; }
+
     @media (max-width: 600px) {
       #appHelpDetails { top: 10px; right: 10px; }
       #appHelpDetails > summary { font-size: .75rem; padding: 8px 10px; }
@@ -2079,6 +2113,19 @@
   -webkit-touch-callout: none;
 }
 
+</style>
+
+
+<style id="per-setting-help-style">
+.setting-help-trigger{display:inline-flex;align-items:center;justify-content:center;flex:0 0 19px;width:19px;height:19px;min-width:19px;margin:0 5px;padding:0;border:1px solid #7fc9ff;border-radius:50%;background:#15364a;color:#eaf7ff;font-size:12px;font-weight:800;line-height:1;cursor:pointer;vertical-align:middle;box-shadow:0 0 0 1px rgba(127,201,255,.08)}
+.setting-help-trigger:hover,.setting-help-trigger:focus-visible{background:#24658a;outline:2px solid #8ed7ff;outline-offset:2px}
+#settingHelpOverlay{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.68);box-sizing:border-box}
+#settingHelpOverlay.is-open{display:flex}
+#settingHelpCard{width:min(440px,100%);max-height:min(78vh,620px);overflow:auto;box-sizing:border-box;padding:18px;border:1px solid #65bce9;border-radius:14px;background:#18212b;color:#f3f7fb;box-shadow:0 16px 48px rgba(0,0,0,.45)}
+#settingHelpCard h3{margin:0 34px 12px 0;font-size:1rem;color:#9cddff;line-height:1.45}
+#settingHelpCard p{margin:0;white-space:pre-line;font-size:.9rem;line-height:1.75;color:#e6edf5}
+#settingHelpClose{float:right;border:1px solid #718096;border-radius:8px;background:#2b3745;color:#fff;padding:5px 10px;cursor:pointer}
+@media(max-width:600px){.setting-help-trigger{width:22px;height:22px;min-width:22px;font-size:13px;margin:0 3px}#settingHelpCard{padding:15px}}
 </style>
 
 </head>
@@ -8145,97 +8192,272 @@
       <h2 id="appHelpTitle">🐭 ももんがカスタマイズアプリ 説明書</h2>
       <p>このアプリは、ももんがのキャラクター表示を中心に、表情・アニメーション・背景・音声・BGM・通知・リアクション・音声認識などをまとめてカスタマイズできるHTMLアプリです。設定はブラウザの保存領域に記録される機能があり、次回起動時にも前回の設定を利用できます。</p>
 
-      <h3>🚀 まず何をすればいい？</h3>
-      <p><strong>1. HTMLファイルを開く</strong><br>このアプリのHTMLをブラウザで開きます。画像・音声などの素材を参照する機能があるため、HTMLだけでなく、付属の <code>assets</code> フォルダなど必要なファイルも同じ構成で用意してください。</p>
+      <details class="app-help-section" open>
+        <summary>🚀 まず何をすればいい？</summary>
+        <div class="app-help-section-content"><p><strong>1. HTMLファイルを開く</strong><br>このアプリのHTMLをブラウザで開きます。画像・音声などの素材を参照する機能があるため、HTMLだけでなく、付属の <code>assets</code> フォルダなど必要なファイルも同じ構成で用意してください。</p>
       <p><strong>2. 画面を確認する</strong><br>中央のキャラクター、背景、時計・経過時間などが表示されます。画面右上の「📘 アプリ説明」を押すと、この説明書をいつでも開けます。</p>
       <p><strong>3. 設定を開く</strong><br>「⚙️ 設定画面 [Esc]」から設定画面を開けます。Escキーでも開閉できます。</p>
       <p><strong>4. 必要な機能だけONにする</strong><br>設定項目は多いため、最初は必要な機能だけONにして、少しずつ調整するのがおすすめです。</p>
+        </div>
+      </details>
 
-      <h3>🎤 音声認識・質問応答</h3>
-      <p>マイクから話した内容を音声認識し、設定した呼び出しキーフレーズやカスタムQ&Aを使って返答する機能です。「音声認識・AI応答機能」をOFFにすると、この機能を停止できます。</p>
+      <details class="app-help-section">
+        <summary>🎤 音声認識・質問応答</summary>
+        <div class="app-help-section-content"><p>マイクから話した内容を音声認識し、設定した呼び出しキーフレーズやカスタムQ&Aを使って返答する機能です。「音声認識・AI応答機能」をOFFにすると、この機能を停止できます。</p>
       <p><strong>呼び出しキーフレーズ：</strong>登録した言葉を呼びかけとして認識します。複数の言葉はカンマ区切りで登録できます。</p>
       <p><strong>呼び出し時の返答：</strong>呼び出しキーフレーズを認識したときに返す文章を設定できます。</p>
       <p><strong>応答後クーリングタイム：</strong>返答直後に同じような音声を何度も連続処理しないための待ち時間です。必要に応じて秒数を変更してください。</p>
       <p><strong>カスタムQ&A：</strong>質問と回答を登録して保存できます。よく使う質問に固定の返答を用意したい場合に便利です。</p>
+        </div>
+      </details>
 
-      <h3>🔊 VOICEVOX・ずんだもん</h3>
-      <p>VOICEVOXを音声合成エンジンとして使用できます。設定にはVOICEVOXの接続先、スピーカーID、自動選択があります。通常はVOICEVOXを起動してから「VOICEVOX接続・音声テスト」を実行し、接続状態と音声再生を確認してください。</p>
+      <details class="app-help-section">
+        <summary>🔊 VOICEVOX・ずんだもん</summary>
+        <div class="app-help-section-content"><p>VOICEVOXを音声合成エンジンとして使用できます。設定にはVOICEVOXの接続先、スピーカーID、自動選択があります。通常はVOICEVOXを起動してから「VOICEVOX接続・音声テスト」を実行し、接続状態と音声再生を確認してください。</p>
       <p>「VOICEVOXのずんだもんを自動選択」をONにすると、VOICEVOX側からずんだもんのスピーカーを探して選択します。接続先の初期値は <code>http://localhost:50021</code> です。</p>
       <p>ブラウザの自動再生制限などにより音声が鳴らない場合は、まず画面上のユーザー操作を行ったあと、VOICEVOXの接続テストを試してください。</p>
+        </div>
+      </details>
 
-      <h3>🎧 Discord・PC音声を認識する場合</h3>
-      <p>「Discord/PC音声取り込み」を使うと、通常のマイクだけでなく、ブラウザで共有したDiscordなどのPC音声も音声認識の対象にできます。自分のマイクと共有した音声を混ぜて認識する仕組みです。</p>
+      <details class="app-help-section">
+        <summary>🎧 Discord・PC音声を認識する場合</summary>
+        <div class="app-help-section-content"><p>「Discord/PC音声取り込み」を使うと、通常のマイクだけでなく、ブラウザで共有したDiscordなどのPC音声も音声認識の対象にできます。自分のマイクと共有した音声を混ぜて認識する仕組みです。</p>
       <p><strong>基本手順：</strong>Discordをブラウザのタブで開く → 「🎧 Discord/PC音声の取り込みを開始」を押す → ブラウザの共有画面でDiscordのタブを選ぶ → 「タブの音声を共有」をONにする、という流れです。</p>
       <p>PC全体を共有した場合は、Discord以外のアプリ音声も認識対象に入る場合があります。また、ブラウザや環境によって画面・タブ音声取り込みに対応していない場合があります。</p>
+        </div>
+      </details>
 
-      <h3>🐏 ラム「ひょっこり顔出し」</h3>
-      <p>ラムが画面の上・下・左・右のいずれかからひょっこり登場する演出です。出現する方向、位置、大きさ、回転、出現時間、次の出現までの待機時間を方向ごとに細かく設定できます。</p>
+      <details class="app-help-section">
+        <summary>🐏 ラム「ひょっこり顔出し」</summary>
+        <div class="app-help-section-content"><p>ラムが画面の上・下・左・右のいずれかからひょっこり登場する演出です。出現する方向、位置、大きさ、回転、出現時間、次の出現までの待機時間を方向ごとに細かく設定できます。</p>
       <p><strong>重要：</strong>ラムの詳細設定は通常は隠されています。キーボードで <strong>ramu</strong> と入力すると、この詳細設定が表示されます。文字入力欄に入力している最中は、誤って解除されないようにしています。</p>
       <p><strong>ラムの顔出し：</strong>ラムの自動出現そのものをON/OFFします。</p>
       <p><strong>ラム登場後のセリフ：</strong>ラムが登場したあとにセリフを言うかどうかをON/OFFできます。OFFにすると、顔出し演出だけを残せます。</p>
       <p><strong>ラムを常に表示：</strong>自動でひょっこり出すのではなく、指定した位置にラムを常時表示するための設定です。</p>
       <p>アプリを開いた直後の最初のラム出現は、設定した最短～最長の範囲からランダムに待機時間が決まります。その後は各方向に設定した待機時間が使われます。</p>
+        </div>
+      </details>
 
-      <h3>😴 放置時間による状態変化</h3>
-      <p>操作しない時間に応じて、キャラクターの状態を「通常 → 細め → 半目 → 閉じ目」と変化させられます。各状態へ切り替わるまでの時間を設定でき、「……」「Zzz」、ゆっくり上下する動き、画面を少し暗くする演出も個別にON/OFFできます。</p>
+      <details class="app-help-section">
+        <summary>😴 放置時間による状態変化</summary>
+        <div class="app-help-section-content"><p>操作しない時間に応じて、キャラクターの状態を「通常 → 細め → 半目 → 閉じ目」と変化させられます。各状態へ切り替わるまでの時間を設定でき、「……」「Zzz」、ゆっくり上下する動き、画面を少し暗くする演出も個別にON/OFFできます。</p>
       <p>テストボタンを使えば状態変化を確認でき、「状態を通常に戻す」で通常状態へ戻せます。</p>
+        </div>
+      </details>
 
-      <h3>👀 システムモニター・リアクション</h3>
-      <p>CPU使用率、メモリ使用量、現在時刻・PC稼働時間、ネットワーク状態、FPSなどの表示を個別にON/OFFできます。通常のブラウザでは取得できない情報は「取得不可」と表示される場合があります。</p>
+      <details class="app-help-section">
+        <summary>👀 システムモニター・リアクション</summary>
+        <div class="app-help-section-content"><p>CPU使用率、メモリ使用量、現在時刻・PC稼働時間、ネットワーク状態、FPSなどの表示を個別にON/OFFできます。通常のブラウザでは取得できない情報は「取得不可」と表示される場合があります。</p>
       <p>キャラクターのクリック反応、ランダムリアクション、マウスカーソルへの目線反応も設定できます。目線反応では反応距離や目線の移動量、まゆげ位置などを調整できます。</p>
+        </div>
+      </details>
 
-      <h3>👋 手を振る動作</h3>
-      <p>右手を自動で振るアニメーションを設定できます。ON/OFFのほか、基準角度、振り幅、待機時間、動作時間、振る速度を調整できます。</p>
+      <details class="app-help-section">
+        <summary>👋 手を振る動作</summary>
+        <div class="app-help-section-content"><p>右手を自動で振るアニメーションを設定できます。ON/OFFのほか、基準角度、振り幅、待機時間、動作時間、振る速度を調整できます。</p>
+        </div>
+      </details>
 
-      <h3>👄 口パク・定期開閉</h3>
-      <p>口を定期的に閉じる機能があります。口を開けている時間と閉じている時間をスライダーで変更できます。</p>
+      <details class="app-help-section">
+        <summary>👄 口パク・定期開閉</summary>
+        <div class="app-help-section-content"><p>口を定期的に閉じる機能があります。口を開けている時間と閉じている時間をスライダーで変更できます。</p>
+        </div>
+      </details>
 
-      <h3>🎬 背景・演出用メディア</h3>
-      <p>背景や演出用メディアには、使用しない、ローカル動画・URL、YouTube動画、ローカル画像、画像URLなどの選択肢があります。動画を表示する機能ではPIP（右下の小窓表示）やミュートも設定できます。</p>
+      <details class="app-help-section">
+        <summary>🎬 背景・演出用メディア</summary>
+        <div class="app-help-section-content"><p>背景や演出用メディアには、使用しない、ローカル動画・URL、YouTube動画、ローカル画像、画像URLなどの選択肢があります。動画を表示する機能ではPIP（右下の小窓表示）やミュートも設定できます。</p>
       <p>閉じ目になったときの特別演出では、2枚目の壁紙への切り替え、WAV音声、暗転、驚き状態などを組み合わせられます。特別演出後の画像を複数登録して、順番に切り替える設定もあります。</p>
+        </div>
+      </details>
 
-      <h3>🖼️ キャラクター・背景の調整</h3>
-      <p>背景画像はローカルファイルまたはURLから指定でき、緑色を自動透過するクロマキー機能もあります。背景とキャラクター全体はドラッグで移動でき、全体スケールも調整できます。</p>
+      <details class="app-help-section">
+        <summary>🖼️ キャラクター・背景の調整</summary>
+        <div class="app-help-section-content"><p>背景画像はローカルファイルまたはURLから指定でき、緑色を自動透過するクロマキー機能もあります。背景とキャラクター全体はドラッグで移動でき、全体スケールも調整できます。</p>
       <p>個別パーツでは、目・口・体・髪・ヘッドドレス・耳・手・足・尻尾などを選択して、X/Y位置、拡大率、回転角度を調整できます。パーツ調整にはロック機能があり、誤操作を防げます。</p>
+        </div>
+      </details>
 
-      <h3>🔔 通知音・🗣️ ボイス</h3>
-      <p>通知音は複数登録でき、それぞれON/OFF、音声ファイル、再生間隔などを個別に設定できます。ボイス設定では登録した音声ファイルを固定・ランダム・順番再生から選べ、再生間隔と音量も変更できます。</p>
+      <details class="app-help-section">
+        <summary>🔔 通知音・🗣️ ボイス</summary>
+        <div class="app-help-section-content"><p>通知音は複数登録でき、それぞれON/OFF、音声ファイル、再生間隔などを個別に設定できます。ボイス設定では登録した音声ファイルを固定・ランダム・順番再生から選べ、再生間隔と音量も変更できます。</p>
       <p>テキスト表示設定では、メインメッセージとサブメッセージをプリセットから選んだり、自由入力したりできます。入力した文章の定期的な自動読み上げも設定できます。</p>
+        </div>
+      </details>
 
-      <h3>🎵 YouTube BGM</h3>
-      <p>YouTubeのURLまたは動画IDを指定して独立したBGMとして再生できます。BGMのON/OFF、ループ、音量を設定できます。ブラウザ側の再生制限によって自動再生できない場合は、画面上で一度操作してから再生してください。</p>
+      <details class="app-help-section">
+        <summary>🎵 YouTube BGM</summary>
+        <div class="app-help-section-content"><p>YouTubeのURLまたは動画IDを指定して独立したBGMとして再生できます。BGMのON/OFF、ループ、音量を設定できます。ブラウザ側の再生制限によって自動再生できない場合は、画面上で一度操作してから再生してください。</p>
+        </div>
+      </details>
 
-      <h3>🎨 カラーテーマ</h3>
-      <p>サイバーブルー、モノクロシンプル、ネオングリーン、自由設定から選べます。自由設定では背景色・メイン色・サブ色を自分で指定でき、その設定はブラウザに保存されます。</p>
+      <details class="app-help-section">
+        <summary>🎨 カラーテーマ</summary>
+        <div class="app-help-section-content"><p>サイバーブルー、モノクロシンプル、ネオングリーン、自由設定から選べます。自由設定では背景色・メイン色・サブ色を自分で指定でき、その設定はブラウザに保存されます。</p>
+        </div>
+      </details>
 
-      <h3>📱💻 スロット2：端末用設定</h3>
-      <p>スロット2にはPC用設定とiPhone用設定が用意されています。使用中の端末を判定して設定を適用することも、PC用・iPhone用を手動で選ぶこともできます。PCとiPhoneでキャラクターの位置や表示設定を変えたい場合に便利です。</p>
+      <details class="app-help-section">
+        <summary>📱💻 スロット2：端末用設定</summary>
+        <div class="app-help-section-content"><p>スロット2にはPC用設定とiPhone用設定が用意されています。使用中の端末を判定して設定を適用することも、PC用・iPhone用を手動で選ぶこともできます。PCとiPhoneでキャラクターの位置や表示設定を変えたい場合に便利です。</p>
+        </div>
+      </details>
 
-      <h3>💾 設定バックアップ・書き出し</h3>
-      <p>スロット1～10を使って設定を保存・復元できます。ただし<strong>スロット2は端末用設定専用</strong>です。通常のバックアップはスロット1、3～10を使用してください。</p>
+      <details class="app-help-section">
+        <summary>💾 設定バックアップ・書き出し</summary>
+        <div class="app-help-section-content"><p>スロット1～10を使って設定を保存・復元できます。ただし<strong>スロット2は端末用設定専用</strong>です。通常のバックアップはスロット1、3～10を使用してください。</p>
       <p>「📤 設定を書き出す」では設定をJSONファイルとして保存でき、「📥 設定を読み込む」では保存したJSONを読み込めます。別の環境へ設定を移したい場合にも利用できます。</p>
+        </div>
+      </details>
 
-      <h3>🎰 パチンコ風抽選機能</h3>
-      <p>アプリにはパチンコ風の抽選・演出機能も組み込まれています。ON/OFF、固定設定または確率抽選、当選確率、演出画像、背景、確変時の鎖＋鉄球画像、BGM、自動抽選間隔などを設定できます。この機能は通常の設定画面から直接表示されない隠し設定として実装されています。</p>
+      <details class="app-help-section">
+        <summary>🎰 パチンコ風抽選機能</summary>
+        <div class="app-help-section-content"><p>アプリにはパチンコ風の抽選・演出機能も組み込まれています。ON/OFF、固定設定または確率抽選、当選確率、演出画像、背景、確変時の鎖＋鉄球画像、BGM、自動抽選間隔などを設定できます。この機能は通常の設定画面から直接表示されない隠し設定として実装されています。</p>
+        </div>
+      </details>
 
-      <h3>🔒 パーツ調整のロック</h3>
-      <p>パーツ位置調整には保護機能があります。ロック中はドラッグや微調整ができません。解除には管理用パスワードが必要です。個別に体・顔、目、口、髪、ヘッドドレス、耳、手、足、尻尾などをロックすることもできます。</p>
+      <details class="app-help-section">
+        <summary>🔒 パーツ調整のロック</summary>
+        <div class="app-help-section-content"><p>パーツ位置調整には保護機能があります。ロック中はドラッグや微調整ができません。解除には管理用パスワードが必要です。個別に体・顔、目、口、髪、ヘッドドレス、耳、手、足、尻尾などをロックすることもできます。</p>
+        </div>
+      </details>
 
-      <h3>🛠️ 音が出ない・うまく動かないとき</h3>
-      <p><strong>VOICEVOX：</strong>VOICEVOXが起動しているか、接続先が正しいかを確認し、「VOICEVOX接続・音声テスト」を試してください。</p>
+      <details class="app-help-section">
+        <summary>🛠️ 音が出ない・うまく動かないとき</summary>
+        <div class="app-help-section-content"><p><strong>VOICEVOX：</strong>VOICEVOXが起動しているか、接続先が正しいかを確認し、「VOICEVOX接続・音声テスト」を試してください。</p>
       <p><strong>マイク：</strong>ブラウザのマイク使用許可を確認してください。音声認識に対応していないブラウザでは利用できない場合があります。</p>
       <p><strong>Discord：</strong>Discordのブラウザタブを共有する場合は、タブ音声の共有をONにしてください。取り込みを停止した場合は通常のマイク認識に戻ります。</p>
       <p><strong>画像・音声ファイル：</strong>指定したファイルの場所やファイル名が正しいか確認してください。HTMLと素材フォルダの構成を変更すると、画像や音声が読み込めなくなる場合があります。</p>
       <p><strong>ブラウザの自動再生：</strong>音声やBGMはブラウザの自動再生制限の影響を受けることがあります。最初に画面をクリックするなど、ユーザー操作を行ってから再生を試してください。</p>
+        </div>
+      </details>
 
-      <h3>📌 おすすめの設定手順</h3>
-      <p>最初は「①背景 → ②キャラクター全体の位置・サイズ → ③パーツ位置 → ④音声/VOICEVOX → ⑤通知・BGM → ⑥リアクション → ⑦ラム」の順に調整すると分かりやすいです。最後に「📤 設定を書き出す」またはバックアップスロットへ保存しておくと、設定を戻したいときに便利です。</p>
+      <details class="app-help-section">
+        <summary>📌 おすすめの設定手順</summary>
+        <div class="app-help-section-content"><p>最初は「①背景 → ②キャラクター全体の位置・サイズ → ③パーツ位置 → ④音声/VOICEVOX → ⑤通知・BGM → ⑥リアクション → ⑦ラム」の順に調整すると分かりやすいです。最後に「📤 設定を書き出す」またはバックアップスロットへ保存しておくと、設定を戻したいときに便利です。</p>
+        </div>
+      </details>
 
-      <h3>❓ 設定項目が見つからないとき</h3>
-      <p>設定画面上部の「🔍 設定を検索」にキーワードを入力すると、設定項目を探せます。ラムの詳細設定だけは通常非表示です。必要な場合はキーボードで <strong>ramu</strong> と入力すると表示されます。設定画面そのものは、<strong>ramuを入力しなくても</strong>「⚙️ 設定画面」またはEscキーから開けます。</p>
+      <details class="app-help-section">
+        <summary>❓ 設定項目が見つからないとき</summary>
+        <div class="app-help-section-content"><p>設定画面上部の「🔍 設定を検索」にキーワードを入力すると、設定項目を探せます。ラムの詳細設定だけは通常非表示です。必要な場合はキーボードで <strong>ramu</strong> と入力すると表示されます。設定画面そのものは、<strong>ramuを入力しなくても</strong>「⚙️ 設定画面」またはEscキーから開けます。</p>
+    </section>
+        </div>
+      </details>
     </section>
   </details>
 
   <div id="currentYoutubeTitle" aria-live="polite"></div>
+
+<script id="per-setting-help-script">
+(() => {
+  const panel = document.getElementById('controlsPanel');
+  if (!panel || panel.dataset.perSettingHelpReady === '1') return;
+  panel.dataset.perSettingHelpReady = '1';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'settingHelpOverlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'settingHelpTitle');
+  overlay.innerHTML = '<div id="settingHelpCard"><button type="button" id="settingHelpClose" aria-label="説明を閉じる">閉じる ✕</button><h3 id="settingHelpTitle">設定項目の説明</h3><p id="settingHelpText"></p></div>';
+  document.body.appendChild(overlay);
+  const titleEl = overlay.querySelector('#settingHelpTitle');
+  const textEl = overlay.querySelector('#settingHelpText');
+  const closeBtn = overlay.querySelector('#settingHelpClose');
+  let lastTrigger = null;
+
+  function getItemName(el) {
+    if (el.matches('.controls-row')) {
+      const span = el.querySelector(':scope > span');
+      if (span) return span.textContent.trim().replace(/\s+/g, ' ');
+    }
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('input,select,textarea,button,.setting-help-trigger').forEach(n => n.remove());
+    return clone.textContent.trim().replace(/\s+/g, ' ').replace(/[:：]\s*$/, '');
+  }
+  function getSectionName(el) {
+    const parent = el.closest('.controls > div, .controls section, .controls fieldset, .discord-audio-box');
+    if (!parent) return '';
+    const heading = parent.querySelector('h2,h3,h4,h5,strong');
+    return heading ? heading.textContent.trim() : '';
+  }
+  function explain(name, id, section) {
+    const n = (name + ' ' + id + ' ' + section).toLowerCase();
+    const rules = [
+      [/検索|search/, '設定画面内の項目をキーワードで探します。項目名の一部を入力し、表示された候補を押すと該当箇所へ移動できます。'],
+      [/音声認識|speech|マイク/, 'ONにすると、マイクなどから取り込んだ音声を認識する機能を有効にします。利用する場合はブラウザのマイク許可も確認してください。'],
+      [/ai応答|自動応答|質問・応答|qa|質問内容と回答/, '質問への応答表示や登録した質問・回答の機能を設定します。表示枠や入力欄をOFFにすると、対応する画面要素が非表示になる場合があります。'],
+      [/呼び出しキーフレーズ|キーワード|callkeywords/, 'キャラクターを呼び出す合図として認識する言葉を指定します。複数指定できる欄は、画面に記載された区切り文字で入力してください。'],
+      [/呼び出し時の返答|greeting/, '呼び出しキーフレーズを認識したときに再生・表示する返答文を指定します。'],
+      [/cooling|クーリング|待機時間|間隔|秒/, '動作を繰り返すまでの待ち時間・間隔を指定します。値を大きくすると、次の動作までの時間が長くなります。'],
+      [/voicevox|ずんだもん|スピーカー|接続先/, 'VOICEVOXとの接続や音声の話者を設定します。接続先はVOICEVOX EngineのURL、スピーカーIDは使用する話者の番号です。自動選択がある場合は手動指定より自動設定が優先されます。'],
+      [/音量|volume|gain/, '対象の音声の大きさを調整します。小さくすると控えめに、大きくすると大きな音で再生されます。端末側の音量にも注意してください。'],
+      [/bgm|youtube|音楽|曲/, 'BGMの再生や使用する音源に関する設定です。再生できない場合は、URL・ネット接続・ブラウザの自動再生制限も確認してください。'],
+      [/通知音|効果音|sound|audio|ボイス|音声/, '音声・通知音の再生方法や使用する素材を設定します。音が出ない場合は、音量、素材のパス、ブラウザの再生許可を確認してください。'],
+      [/背景|壁紙|background/, 'キャラクターの後ろに表示する背景を設定します。画像やURLを指定する項目では、ファイルの場所やURLが正しいか確認してください。'],
+      [/キャラクター|サイズ|拡大|縮小|位置|x座標|y座標|移動|ドラッグ/, 'キャラクターまたは対象パーツの表示位置・大きさを調整します。値を変更したら、表示結果を確認しながら少しずつ調整してください。'],
+      [/透明|opacity|不透明度/, '対象の表示の透け具合を調整します。値を小さくすると透明に近づき、大きくすると見えやすくなります。'],
+      [/目|まぶた|口|手|足|耳|しっぽ|パーツ|表情/, 'キャラクターの該当パーツや表情の表示・動作を調整します。設定を変えた後、キャラクター表示を確認してください。'],
+      [/ラム|ramu|ひょっこり/, 'ラムの顔出し演出に関する設定です。表示条件や位置などを調整し、画面上で動作を確認してください。'],
+      [/放置|idle|経過時間|時計/, '操作していない時間や経過時間に応じた表示・状態変化を設定します。時間の値は、動作が切り替わるまでの目安になります。'],
+      [/リアクション|反応|カーソル|マウス|手を振る|アニメーション|動作/, 'キャラクターの反応やアニメーション動作を設定します。ON/OFFや数値を変更し、実際の操作で反応を確認してください。'],
+      [/通知/, '通知の表示や通知時の動作を設定します。通知が表示されない場合は、この項目とブラウザ側の通知許可を確認してください。'],
+      [/テーマ|カラー|色|theme/, 'アプリの配色や見た目を変更します。キャラクター素材そのものではなく、主に画面の色や表示スタイルに反映されます。'],
+      [/ロック|lock/, 'ONにすると、対象のパーツや設定の誤操作を防ぐため、移動・調整などの操作を制限します。変更したい場合はロックを解除してください。'],
+      [/保存|バックアップ|書き出し|復元|インポート|エクスポート/, '設定を保存・バックアップしたり、保存済みの設定を読み込んだりするための項目です。読み込みや復元の前に、必要なら現在の設定をバックアップしてください。'],
+      [/抽選|パチンコ|スロット|演出/, '抽選や演出の動作に関する設定です。実行方法や表示の切り替わりは、項目名や近くの説明を確認してから操作してください。'],
+      [/discord|pc音声|通話音声|システム音/, 'PCや通話アプリの音声を認識対象にするための設定です。ブラウザやOSの音声入力・画面共有の許可が必要な場合があります。'],
+      [/テスト|再検出|確認|実行|開始|停止|リセット/, 'このボタンを押すと、表示されている機能のテスト・再検出・実行などを行います。設定値を変更する項目ではないため、動作確認のときに使用してください.'],
+      [/on|off|有効|無効|表示|非表示|toggle|機能/, 'この機能を有効にするか、無効にするかを切り替えます。ONにすると機能が動作し、OFFにすると停止または非表示になります。']
+    ];
+    for (const [pattern, desc] of rules) if (pattern.test(n)) return desc;
+    const sectionText = section ? `この項目は「${section}」に関する設定です。` : '';
+    return sectionText + `「${name || id || 'この項目'}」の設定を変更します。値を変えたら画面上の表示や動作を確認し、意図した結果になるよう調整してください。`;
+  }
+  function showHelp(name, id, section, trigger) {
+    lastTrigger = trigger;
+    titleEl.textContent = name || '設定項目の説明';
+    textEl.textContent = explain(name, id, section);
+    overlay.classList.add('is-open');
+    closeBtn.focus();
+  }
+  function addButton(el, name) {
+    if (!name || el.querySelector(':scope > .setting-help-trigger')) return;
+    const input = el.querySelector('input,select,textarea');
+    const id = input?.id || el.id || '';
+    const section = getSectionName(el);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'setting-help-trigger';
+    btn.textContent = '?';
+    btn.title = `${name}の説明を表示`;
+    btn.setAttribute('aria-label', `${name}の説明を表示`);
+    btn.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      showHelp(name, id, section, btn);
+    });
+    el.appendChild(btn);
+  }
+
+  panel.querySelectorAll('label').forEach(el => {
+    if (el.closest('#settingsSearchResults') || el.closest('.controls-row')) return;
+    addButton(el, getItemName(el));
+  });
+  panel.querySelectorAll('.controls-row').forEach(el => {
+    addButton(el, getItemName(el));
+  });
+
+
+  function closeHelp() {
+    overlay.classList.remove('is-open');
+    if (lastTrigger?.isConnected) lastTrigger.focus();
+  }
+  closeBtn.addEventListener('click', closeHelp);
+  overlay.addEventListener('click', ev => { if (ev.target === overlay) closeHelp(); });
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && overlay.classList.contains('is-open')) closeHelp(); });
+})();
+</script>
+
 </body>
 </html>
