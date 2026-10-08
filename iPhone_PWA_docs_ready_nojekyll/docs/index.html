@@ -2499,7 +2499,10 @@
       </div>
 
       <div id="ramSecretSettings" class="ram-secret-locked" style="margin-top:8px; padding-top:7px; border-top:1px solid #333;">
-        <h4 style="font-size:0.82rem; color:var(--text-color); margin:0 0 5px;">🐏 ラム「ひょっこり顔出し」設定</h4>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+          <h4 style="font-size:0.82rem; color:var(--text-color); margin:0;">🐏 ラム「ひょっこり顔出し」設定</h4>
+          <button id="closeRamSecretBtn" type="button" style="margin:0; padding:4px 8px; font-size:.68rem; white-space:nowrap;">🔒 隠し設定を閉じる</button>
+        </div>
         <div class="controls-row"><span>ラムの顔出し:</span><input type="checkbox" id="ramPopToggle" checked></div>
         <div class="controls-row"><span>ラム登場後のセリフ:</span><input type="checkbox" id="ramSpeechToggle" checked></div>
         <div class="controls-row"><span>設定中：ラムを常に表示:</span><input type="checkbox" id="ramAlwaysToggle"></div>
@@ -3230,6 +3233,7 @@
     const controlsPanel = document.getElementById('controlsPanel');
     const openSettingsBtn = document.getElementById('openSettingsBtn');
     const ramSecretSettings = document.getElementById('ramSecretSettings');
+    const closeRamSecretBtn = document.getElementById('closeRamSecretBtn');
 
     // 通常の設定画面はいつでも開けます。
     function toggleSettingsPanel() {
@@ -3252,6 +3256,18 @@
       ramuSecretBuffer = '';
       clearTimeout(ramuSecretTimer);
     }
+
+    function lockRamSecretSettings() {
+      ramuSecretUnlocked = false;
+      if (ramSecretSettings) ramSecretSettings.classList.add('ram-secret-locked');
+      ramuSecretBuffer = '';
+      clearTimeout(ramuSecretTimer);
+    }
+
+    closeRamSecretBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      lockRamSecretSettings();
+    });
 
     window.addEventListener('keydown', (e) => {
       const tag = e.target?.tagName;
