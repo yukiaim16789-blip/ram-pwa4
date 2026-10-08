@@ -8440,14 +8440,30 @@
     el.appendChild(btn);
   }
 
-  panel.querySelectorAll('label').forEach(el => {
-    if (el.closest('#settingsSearchResults') || el.closest('.controls-row')) return;
-    addButton(el, getItemName(el));
-  });
-  panel.querySelectorAll('.controls-row').forEach(el => {
-    addButton(el, getItemName(el));
-  });
+  // 設定項目を走査。後から追加・再描画される項目にも ? ボタンを付ける。
+  function scanSettingItems(root = panel) {
+    root.querySelectorAll('label').forEach(el => {
+      if (el.closest('#settingsSearchResults') || el.closest('.controls-row')) return;
+      addButton(el, getItemName(el));
+    });
+    root.querySelectorAll('.controls-row').forEach(el => {
+      addButton(el, getItemName(el));
+    });
+    // root自体が項目として追加された場合にも対応
+    if (root.matches && root.matches('.controls-row')) addButton(root, getItemName(root));
+    if (root.matches && root.matches('label') && !root.closest('#settingsSearchResults') && !root.closest('.controls-row')) addButton(root, getItemName(root));
+  }
+  scanSettingItems();
 
+  // GitHub Pages版で設定UIが後から生成されるケースを監視する。
+  const helpObserver = new MutationObserver(mutations => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE) scanSettingItems(node);
+      }
+    }
+  });
+  helpObserver.observe(panel, { childList: true, subtree: true });
 
   function closeHelp() {
     overlay.classList.remove('is-open');
