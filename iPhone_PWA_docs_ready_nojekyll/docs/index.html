@@ -212,12 +212,16 @@
       display: none !important;
     }
 
-    /* 📘 右上のアプリ説明タブ */
-    #appHelpTab {
+    /* 📘 アプリ説明（JavaScript不要・GitHub Pagesでも開ける） */
+    #appHelpDetails {
       position: fixed;
       top: 14px;
       right: 18px;
       z-index: 10000;
+      color: var(--text-color, #00f3ff);
+    }
+    #appHelpDetails > summary {
+      list-style: none;
       padding: 9px 14px;
       border: 1px solid var(--text-color, #00f3ff);
       border-radius: 10px;
@@ -227,28 +231,19 @@
       font-size: 0.85rem;
       cursor: pointer;
       box-shadow: 0 0 12px rgba(0,243,255,.18);
+      user-select: none;
     }
-    #appHelpTab:hover, #appHelpTab:focus-visible {
+    #appHelpDetails > summary::-webkit-details-marker { display: none; }
+    #appHelpDetails > summary:hover, #appHelpDetails[open] > summary {
       background: var(--text-color, #00f3ff);
       color: #001014;
-      outline: none;
     }
-    #appHelpOverlay {
-      position: fixed;
-      inset: 0;
-      z-index: 10001;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      box-sizing: border-box;
-      background: rgba(0,0,0,.76);
-      backdrop-filter: blur(5px);
-    }
-    #appHelpOverlay.is-open { display: flex; }
     #appHelpDialog {
-      width: min(680px, 100%);
-      max-height: min(82vh, 780px);
+      position: fixed;
+      top: 62px;
+      right: 18px;
+      width: min(680px, calc(100vw - 36px));
+      max-height: calc(100vh - 90px);
       overflow: auto;
       box-sizing: border-box;
       padding: 22px;
@@ -262,20 +257,12 @@
     #appHelpDialog h2 { margin: 0 0 12px; color: var(--text-color, #00f3ff); font-size: 1.25rem; }
     #appHelpDialog h3 { margin: 18px 0 5px; color: #ff4ca4; font-size: 1rem; }
     #appHelpDialog p { margin: 6px 0; }
-    #appHelpDialog .app-help-close {
-      float: right;
-      padding: 7px 12px;
-      border: 1px solid var(--text-color, #00f3ff);
-      border-radius: 8px;
-      background: transparent;
-      color: inherit;
-      cursor: pointer;
-    }
+    #appHelpDialog code { word-break: break-word; }
     @media (max-width: 600px) {
-      #appHelpTab { top: 10px; right: 10px; font-size: .75rem; padding: 8px 10px; }
-      #appHelpDialog { padding: 16px; }
+      #appHelpDetails { top: 10px; right: 10px; }
+      #appHelpDetails > summary { font-size: .75rem; padding: 8px 10px; }
+      #appHelpDialog { top: 56px; right: 10px; width: calc(100vw - 20px); max-height: calc(100vh - 70px); padding: 16px; }
     }
-
   </style>
   <style>
     :root {
@@ -8135,14 +8122,10 @@
 
 </script>
 
-  <!-- 📘 アプリ説明タブ -->
-  <button id="appHelpTab" type="button" aria-haspopup="dialog" aria-controls="appHelpOverlay">
-    📘 アプリ説明
-  </button>
-
-  <div id="appHelpOverlay" role="presentation">
-    <section id="appHelpDialog" role="dialog" aria-modal="true" aria-labelledby="appHelpTitle" tabindex="-1">
-      <button class="app-help-close" id="appHelpClose" type="button">閉じる ✕</button>
+  <!-- 📘 アプリ説明：<details>を使用しているため、JavaScriptが動かなくても説明を開けます -->
+  <details id="appHelpDetails">
+    <summary>📘 アプリ説明</summary>
+    <section id="appHelpDialog" role="region" aria-labelledby="appHelpTitle">
       <h2 id="appHelpTitle">🐭 ももんがカスタマイズアプリ 説明書</h2>
       <p>このアプリは、ももんがのキャラクター表示を中心に、表情・アニメーション・背景・音声・BGM・通知・リアクション・音声認識などをまとめてカスタマイズできるHTMLアプリです。設定はブラウザの保存領域に記録される機能があり、次回起動時にも前回の設定を利用できます。</p>
 
@@ -8233,39 +8216,9 @@
       <p>最初は「①背景 → ②キャラクター全体の位置・サイズ → ③パーツ位置 → ④音声/VOICEVOX → ⑤通知・BGM → ⑥リアクション → ⑦ラム」の順に調整すると分かりやすいです。最後に「📤 設定を書き出す」またはバックアップスロットへ保存しておくと、設定を戻したいときに便利です。</p>
 
       <h3>❓ 設定項目が見つからないとき</h3>
-      <p>設定画面上部の「🔍 設定を検索」にキーワードを入力すると、設定項目を探せます。また、ラムの詳細設定は通常非表示なので、必要な場合はキーボードで <strong>ramu</strong> と入力してください。</p>
+      <p>設定画面上部の「🔍 設定を検索」にキーワードを入力すると、設定項目を探せます。ラムの詳細設定だけは通常非表示です。必要な場合はキーボードで <strong>ramu</strong> と入力すると表示されます。設定画面そのものは、<strong>ramuを入力しなくても</strong>「⚙️ 設定画面」またはEscキーから開けます。</p>
     </section>
-  </div>
-
-  <script>
-    // 📘 アプリ説明タブ：クリック・Esc・背景クリックで閉じる
-    (() => {
-      const tab = document.getElementById('appHelpTab');
-      const overlay = document.getElementById('appHelpOverlay');
-      const dialog = document.getElementById('appHelpDialog');
-      const close = document.getElementById('appHelpClose');
-      if (!tab || !overlay || !dialog || !close) return;
-
-      const openHelp = () => {
-        overlay.classList.add('is-open');
-        tab.setAttribute('aria-expanded', 'true');
-        close.focus();
-      };
-      const closeHelp = () => {
-        overlay.classList.remove('is-open');
-        tab.setAttribute('aria-expanded', 'false');
-        tab.focus();
-      };
-      tab.addEventListener('click', openHelp);
-      close.addEventListener('click', closeHelp);
-      overlay.addEventListener('click', (event) => {
-        if (event.target === overlay) closeHelp();
-      });
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && overlay.classList.contains('is-open')) closeHelp();
-      });
-    })();
-  </script>
+  </details>
 
   <div id="currentYoutubeTitle" aria-live="polite"></div>
 </body>
