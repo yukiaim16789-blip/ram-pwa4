@@ -9014,21 +9014,13 @@
         handFallTestButton.addEventListener('click', (event) => {
           event.preventDefault();
           event.stopPropagation();
-          // テスト時は保存前の入力値もそのまま使用する。
-          const previewSettings = {
-            speed: Math.max(20, Math.min(100, Number(speedInput && speedInput.value) || 20)),
-            size: Math.max(20, Math.min(150, Number(sizeInput && sizeInput.value) || 100)),
-            distance: Math.max(30, Math.min(250, Number(distanceInput && distanceInput.value) || 125)),
-            x: Math.max(0, Math.min(100, Number(xInput && xInput.value) || 0)),
-            y: Math.max(0, Math.min(100, Number(yInput && yInput.value) || 0)),
-            z: Math.max(30, Math.min(200, Number(zInput && zInput.value) || 100)),
-            rotation: Math.max(0, Math.min(720, Number(rotationInput && rotationInput.value) || 0))
-          };
+          // 保存済みの設定を読み込み、テスト演出と通常演出で同じ落下速度を使う。
+          const previewSettings = readHandFallSettings();
           pendingPreviewSettings = previewSettings;
           if (isShown) hideStartupScene();
           // 設定画面上のボタンから呼び出しても、オーバーレイの自動終了を防いで再生。
           showStartupScene();
-          if (settingsStatus) settingsStatus.textContent = 'テスト中：現在の入力値で手の落下を再生しています。クリック／タップまたはEscで戻れます。';
+          if (settingsStatus) settingsStatus.textContent = 'テスト中：保存済みの設定で手の落下を再生しています。クリック／タップまたはEscで戻れます。';
         });
       }
 
