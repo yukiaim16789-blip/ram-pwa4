@@ -9028,5 +9028,46 @@
       else window.addEventListener('load', scheduleStartupScene, { once: true });
     })();
   </script>
+
+<!-- 修正: 落下後の停止位置を確実に反映し、メイン画面の手を表示 -->
+<style id="hand-fall-visibility-fix">
+#startupSceneOverlay #startupFallingHand { visibility: visible; }
+#startupSceneOverlay.is-landed #startupFallingHand { display: block !important; opacity: 1; animation: none !important; left: var(--hand-x,75%) !important; top: var(--hand-y,68%) !important; width: min(62vw,760px) !important; transform: translate(-50%,-50%) rotate(var(--hand-rotation-end,0deg)) scale(var(--hand-size,1)) !important; }
+#startupSceneOverlay #startupFallingHand.is-falling { display:block !important; visibility:visible !important; }
+</style>
+<script id="hand-fall-stop-position-fix">
+(function(){
+  const overlay=document.getElementById('startupSceneOverlay');
+  const hand=document.getElementById('startupFallingHand');
+  if(!overlay||!hand) return;
+  function syncStopPosition(){
+    const x=document.getElementById('handFallXSetting');
+    const y=document.getElementById('handFallYSetting');
+    const size=document.getElementById('handFallSizeSetting');
+    const z=document.getElementById('handFallZSetting');
+    const rot=document.getElementById('handFallRotationSetting');
+    const startX=document.getElementById('handFallStartXSetting');
+    const startY=document.getElementById('handFallStartYSetting');
+    const startSize=document.getElementById('handFallStartSizeSetting');
+    const xv=Math.max(0,Math.min(100,Number(x?.value??75)));
+    const yv=Math.max(0,Math.min(100,Number(y?.value??68)));
+    const sv=Math.max(10,Math.min(200,Number(size?.value??100)));
+    const zv=Math.max(30,Math.min(200,Number(z?.value??100)));
+    const rv=Math.max(0,Math.min(720,Number(rot?.value??90)));
+    overlay.style.setProperty('--hand-x',xv+'%'); overlay.style.setProperty('--hand-y',yv+'%');
+    overlay.style.setProperty('--hand-size',String(sv/100*zv/100));
+    overlay.style.setProperty('--hand-rotation-end',rv+'deg');
+    if(startX) overlay.style.setProperty('--hand-start-x',Math.max(0,Math.min(100,Number(startX.value)||75))+'%');
+    if(startY) overlay.style.setProperty('--hand-start-y',Math.max(0,Math.min(100,Number(startY.value)||5))+'%');
+    if(startSize) overlay.style.setProperty('--hand-start-size',String(Math.max(10,Math.min(200,Number(startSize.value)||100))/100));
+  }
+  ['handFallXSetting','handFallYSetting','handFallSizeSetting','handFallZSetting','handFallRotationSetting','handFallStartXSetting','handFallStartYSetting','handFallStartSizeSetting'].forEach(id=>{const el=document.getElementById(id); if(el) el.addEventListener('input',syncStopPosition);});
+  // Keep the hand visible at its configured final position after landing; a new run removes this state in the original handler.
+  const observer=new MutationObserver(()=>{ if(overlay.classList.contains('is-landed')) syncStopPosition(); });
+  observer.observe(overlay,{attributes:true,attributeFilter:['class']});
+  syncStopPosition();
+})();
+</script>
+
 </body>
 </html>
