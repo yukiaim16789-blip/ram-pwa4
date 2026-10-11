@@ -2578,8 +2578,8 @@
       <div style="margin-top:10px;padding:10px;border:1px solid #9b73ff;border-radius:8px;background:rgba(100,70,180,.12);display:flex;flex-direction:column;gap:8px;">
         <h4 style="font-size:.85rem;color:#c8a8ff;margin:0;">🐾 手の落下演出設定</h4>
         
-        <label>落下速度（秒・小さいほど速い）:
-          <input type="number" id="handFallSpeedSetting" min="0.2" max="20" step="0.1" value="1.8">
+        <label>落下速度（20〜100秒・小さいほど速い）:
+          <input type="number" id="handFallSpeedSetting" min="20" max="100" step="1" value="20">
         </label>
         <div id="handFallMotionPreviewPanel" style="border:1px solid rgba(0,220,255,.4);border-radius:8px;padding:10px;background:rgba(5,10,28,.72);margin:6px 0;">
           <div style="font-weight:bold;color:#63eaff;margin-bottom:6px;">開始位置から停止位置までの動き</div>
@@ -8690,7 +8690,7 @@
       const sceneBackground = document.getElementById('startupSceneBackground');
 
       function readHandFallSettings() {
-        let settings = { speed: 1.8, size: 100, distance: 125, x: 75, y: 68, z: 100, rotation: 90, startX: 75, startY: 5, startSize: 100 };
+        let settings = { speed: 20, size: 100, distance: 125, x: 75, y: 68, z: 100, rotation: 90, startX: 75, startY: 5, startSize: 100 };
         try {
           const saved = JSON.parse(localStorage.getItem('handFallSceneSettings') || '{}');
           settings.speed = Number(saved.speed) || settings.speed;
@@ -8704,7 +8704,7 @@
           if (Number.isFinite(Number(saved.startY))) settings.startY = Number(saved.startY);
           if (Number.isFinite(Number(saved.startSize))) settings.startSize = Number(saved.startSize);
         } catch (_) {}
-        settings.speed = Math.max(0.2, Math.min(20, settings.speed));
+        settings.speed = Math.max(20, Math.min(100, settings.speed));
         settings.size = Math.max(20, Math.min(150, settings.size));
         settings.distance = Math.max(30, Math.min(250, settings.distance));
         settings.x = Math.max(0, Math.min(100, settings.x));
@@ -8832,7 +8832,7 @@
       if (saveSettingsButton) {
         saveSettingsButton.addEventListener('click', () => {
           const settings = {
-            speed: Math.max(0.2, Math.min(20, Number(speedInput && speedInput.value) || 1.8)),
+            speed: Math.max(20, Math.min(100, Number(speedInput && speedInput.value) || 20)),
             size: Math.max(20, Math.min(150, Number(sizeInput && sizeInput.value) || 100)),
             distance: Math.max(30, Math.min(250, Number(distanceInput && distanceInput.value) || 125)),
             x: Math.max(0, Math.min(100, Number(xInput && xInput.value) || 0)),
@@ -9016,7 +9016,7 @@
           event.stopPropagation();
           // テスト時は保存前の入力値もそのまま使用する。
           const previewSettings = {
-            speed: Math.max(0.2, Math.min(20, Number(speedInput && speedInput.value) || 1.8)),
+            speed: Math.max(20, Math.min(100, Number(speedInput && speedInput.value) || 20)),
             size: Math.max(20, Math.min(150, Number(sizeInput && sizeInput.value) || 100)),
             distance: Math.max(30, Math.min(250, Number(distanceInput && distanceInput.value) || 125)),
             x: Math.max(0, Math.min(100, Number(xInput && xInput.value) || 0)),
@@ -9130,7 +9130,7 @@
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const num=(el,d)=>{const v=Number(el.value);return Number.isFinite(v)?v:d;};
  function getImage(){const source=$('handFallStartImagePreview')||$('handFallImagePreview'); if(source&&source.src) img.src=source.src;}
- function values(){const rect=stage.getBoundingClientRect();return {sx:clamp(num(startX,75),0,100)/100*rect.width,sy:clamp(num(startY,5),0,100)/100*rect.height,ex:clamp(num(endX,75),0,100)/100*rect.width,ey:clamp(num(endY,68),0,100)/100*rect.height,ss:clamp(num(startSize,100),10,200)/100,es:clamp(num(endSize,100),10,200)/100*(clamp(num(z,100),30,200)/100),duration:clamp(num(speed,1.8),.2,20)*1000};}
+ function values(){const rect=stage.getBoundingClientRect();return {sx:clamp(num(startX,75),0,100)/100*rect.width,sy:clamp(num(startY,5),0,100)/100*rect.height,ex:clamp(num(endX,75),0,100)/100*rect.width,ey:clamp(num(endY,68),0,100)/100*rect.height,ss:clamp(num(startSize,100),10,200)/100,es:clamp(num(endSize,100),10,200)/100*(clamp(num(z,100),30,200)/100),duration:clamp(num(speed,20),20,100)*1000};}
  let animation=null;
  function placeAtEnd(){const v=values();if(animation){animation.cancel();animation=null;}img.style.left=v.ex+'px';img.style.top=v.ey+'px';img.style.width=(100*v.es)+'px';img.style.height=(100*v.es)+'px';img.style.opacity='1';getImage();}
  function run(){const v=values();getImage();if(animation){animation.cancel();animation=null;}img.style.left=v.sx+'px';img.style.top=v.sy+'px';img.style.width=(100*v.ss)+'px';img.style.height=(100*v.ss)+'px';img.style.opacity='1';const keyframes=[{left:v.sx+'px',top:v.sy+'px',width:(100*v.ss)+'px',height:(100*v.ss)+'px',transform:'translate(-50%,-50%) rotate(-5deg)'},{left:v.ex+'px',top:v.ey+'px',width:(100*v.es)+'px',height:(100*v.es)+'px',transform:'translate(-50%,-50%) rotate(0deg)'}];animation=img.animate(keyframes,{duration:v.duration,easing:'cubic-bezier(.2,.72,.28,1)',fill:'forwards'});animation.onfinish=()=>{img.style.left=v.ex+'px';img.style.top=v.ey+'px';img.style.width=(100*v.es)+'px';img.style.height=(100*v.es)+'px';img.style.transform='translate(-50%,-50%)';animation=null;};}
