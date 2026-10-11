@@ -2579,6 +2579,16 @@
         <label>落下速度（秒・小さいほど速い）:
           <input type="number" id="handFallSpeedSetting" min="0.2" max="5" step="0.1" value="1.8">
         </label>
+        <div id="handFallMotionPreviewPanel" style="border:1px solid rgba(0,220,255,.4);border-radius:8px;padding:10px;background:rgba(5,10,28,.72);margin:6px 0;">
+          <div style="font-weight:bold;color:#63eaff;margin-bottom:6px;">開始位置から停止位置までの動き</div>
+          <div style="font-size:.75rem;color:#dceaff;margin-bottom:8px;">開始位置・停止位置・両方の大きさ・落下速度を設定してから、動き確認を押してください。</div>
+          <div id="handFallMotionStage" style="height:300px;position:relative;overflow:hidden;touch-action:none;border:1px solid rgba(168,232,255,.35);border-radius:7px;background:radial-gradient(ellipse at center,rgba(12,30,55,.9),rgba(4,7,20,.98));">
+            <div style="position:absolute;left:0;right:0;top:50%;border-top:1px dashed rgba(99,234,255,.22);pointer-events:none;"></div>
+            <img id="handFallMotionImage" alt="落下動作プレビュー" style="position:absolute;width:100px;height:100px;object-fit:contain;left:75%;top:5%;transform:translate(-50%,-50%);opacity:1;pointer-events:none;">
+          </div>
+          <button type="button" id="handFallMotionPlay" style="margin-top:8px;padding:8px 14px;border-radius:7px;cursor:pointer;">▶ 動き確認</button>
+          <button type="button" id="handFallMotionReset" style="margin-top:8px;padding:8px 14px;border-radius:7px;cursor:pointer;">位置を反映して停止</button>
+        </div>
         <details open style="border:1px solid rgba(0,220,255,.35);border-radius:7px;padding:8px;margin:5px 0;">
           <summary style="cursor:pointer;color:#63eaff;font-weight:bold;">① 落下開始時点の位置・大きさ</summary>
           <p style="font-size:.72rem;color:#c8d5ff;margin:6px 0;">画面上で手をドラッグして開始位置を調整できます。数値でも変更できます。</p>
@@ -9102,5 +9112,28 @@
   function up(e){if(!dragging)return;dragging=false;pid=null;img.classList.remove('is-dragging');}
   document.addEventListener('pointermove',move,{passive:false});document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
   update();
+})();
+</script>
+
+
+<style id="hand-fall-motion-preview-style">#handFallMotionStage img{max-width:none!important;max-height:none!important;}</style>
+<script id="hand-fall-motion-preview-controller">
+(function(){
+ const $=id=>document.getElementById(id);
+ const stage=$('handFallMotionStage'), img=$('handFallMotionImage');
+ const startX=$('handFallStartXSetting'),startY=$('handFallStartYSetting'),startSize=$('handFallStartSizeSetting');
+ const endX=$('handFallXSetting'),endY=$('handFallYSetting'),endSize=$('handFallSizeSetting'),z=$('handFallZSetting'),speed=$('handFallSpeedSetting');
+ const play=$('handFallMotionPlay'),reset=$('handFallMotionReset');
+ if(!stage||!img||!startX||!startY||!startSize||!endX||!endY||!endSize||!speed||!play)return;
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const num=(el,d)=>{const v=Number(el.value);return Number.isFinite(v)?v:d;};
+ function getImage(){const source=$('handFallStartImagePreview')||$('handFallImagePreview'); if(source&&source.src) img.src=source.src;}
+ function values(){const rect=stage.getBoundingClientRect();return {sx:clamp(num(startX,75),0,100)/100*rect.width,sy:clamp(num(startY,5),0,100)/100*rect.height,ex:clamp(num(endX,75),0,100)/100*rect.width,ey:clamp(num(endY,68),0,100)/100*rect.height,ss:clamp(num(startSize,100),10,200)/100,es:clamp(num(endSize,100),10,200)/100*(clamp(num(z,100),30,200)/100),duration:clamp(num(speed,1.8),.2,5)*1000};}
+ let animation=null;
+ function placeAtEnd(){const v=values();if(animation){animation.cancel();animation=null;}img.style.left=v.ex+'px';img.style.top=v.ey+'px';img.style.width=(100*v.es)+'px';img.style.height=(100*v.es)+'px';img.style.opacity='1';getImage();}
+ function run(){const v=values();getImage();if(animation){animation.cancel();animation=null;}img.style.left=v.sx+'px';img.style.top=v.sy+'px';img.style.width=(100*v.ss)+'px';img.style.height=(100*v.ss)+'px';img.style.opacity='1';const keyframes=[{left:v.sx+'px',top:v.sy+'px',width:(100*v.ss)+'px',height:(100*v.ss)+'px',transform:'translate(-50%,-50%) rotate(-5deg)'},{left:v.ex+'px',top:v.ey+'px',width:(100*v.es)+'px',height:(100*v.es)+'px',transform:'translate(-50%,-50%) rotate(0deg)'}];animation=img.animate(keyframes,{duration:v.duration,easing:'cubic-bezier(.2,.72,.28,1)',fill:'forwards'});animation.onfinish=()=>{img.style.left=v.ex+'px';img.style.top=v.ey+'px';img.style.width=(100*v.es)+'px';img.style.height=(100*v.es)+'px';img.style.transform='translate(-50%,-50%)';animation=null;};}
+ play.addEventListener('click',run);reset.addEventListener('click',placeAtEnd);
+ [startX,startY,startSize,endX,endY,endSize,z,speed].filter(Boolean).forEach(el=>el.addEventListener('input',()=>{if(!animation) placeAtEnd();}));
+ window.addEventListener('resize',()=>{if(!animation)placeAtEnd();});getImage();placeAtEnd();
 })();
 </script>
