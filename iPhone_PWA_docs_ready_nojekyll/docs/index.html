@@ -2198,8 +2198,9 @@
     }
   
     /* 設定中に表示する、ドラッグ可能な手のプレビュー */
-    #handFallImagePreviewBox { position: relative; min-height: 260px; overflow: hidden; touch-action: none; }
-    #handFallImagePreview { max-width: 100%; cursor: grab; user-select: none; -webkit-user-drag: none; touch-action: none; }
+    #handFallImagePreviewBox { position: relative; min-height: 300px; overflow: hidden; touch-action: none; display:block !important; padding-top:34px !important; }
+    #handFallImagePreviewBox > div:first-child { position:relative; z-index:3; text-align:center; }
+    #handFallImagePreview { position:absolute; display:block; width:150px; height:150px; max-width:none; object-fit:contain; left:75%; top:68%; transform:translate(-50%,-50%); cursor:grab; user-select:none; -webkit-user-drag:none; touch-action:none; z-index:2; }
     #handFallImagePreview.is-dragging { cursor: grabbing; }
     #handFallImagePreviewBox img { opacity: 1; visibility: visible; }
     #handFallDragHelp { font-size: .7rem; color: #b9d8ff; text-align: center; }
@@ -2217,7 +2218,8 @@
       object-fit: contain;
       opacity: 0;
       transform: translate3d(-50%, -50%, 0) translate3d(0, -125vh, 0) rotate(-5deg) scale(calc(var(--hand-size, 1) * .96));
-      pointer-events: none;
+      pointer-events: auto;
+      cursor: grab; touch-action: none; user-select: none; -webkit-user-drag: none;
       filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .28));
     }
     #startupSceneOverlay #startupFallingHand.is-falling {
@@ -2600,6 +2602,18 @@
           <input type="number" id="handFallRotationSetting" min="0" max="720" step="15" value="90">
         </label>
         <div style="font-size:.72rem;color:#c8d5ff;">X=左↔右、Y=上↔下、Z=奥行き感（大きさ）。回転率は落下中に回転する速さです。Zは「手の大きさ」と掛け合わせて反映されます。</div>
+        <details open style="border:1px solid rgba(0,220,255,.35);border-radius:7px;padding:8px;margin:5px 0;">
+          <summary style="cursor:pointer;color:#63eaff;font-weight:bold;">① 手の表示位置・ドラッグ設定</summary>
+          <p style="font-size:.72rem;color:#c8d5ff;margin:6px 0;">メイン画面に手が表示されたら、手をマウスでつかんで好きな場所へ移動できます。</p>
+        </details>
+        <details style="border:1px solid rgba(255,0,127,.35);border-radius:7px;padding:8px;margin:5px 0;">
+          <summary style="cursor:pointer;color:#ff72b4;font-weight:bold;">② 落下後の停止位置</summary>
+          <p style="font-size:.72rem;color:#c8d5ff;margin:6px 0;">下のX・Y設定は落下後に止まる位置です。手の表示位置とは別に調整できます。</p>
+        </details>
+        <label>手の落下演出を行う頻度（分ごと）:
+          <input type="number" id="handFallFrequencyMinutes" min="1" max="1440" step="1" value="10">
+        </label>
+        <div style="font-size:.72rem;color:#c8d5ff;">自動で繰り返す間隔です。1〜1440分で設定できます。</div>
         <button id="handFallSettingsSaveBtn" type="button" style="background:#6845a5;border:1px solid #bda0ff;color:#fff;font-weight:bold;">設定を保存</button>
         <button id="handFallTestBtn" type="button" style="background:linear-gradient(135deg,#00b8ff,#6845a5);border:1px solid #a8e8ff;color:#fff;font-weight:bold;">▶️ 手の落下をテスト</button>
         <div id="handFallSettingsStatus" style="font-size:.75rem;color:#d9caff;">設定はこのブラウザに保存されます。テストボタンで現在の設定をすぐ確認できます。</div>
@@ -8792,6 +8806,45 @@
           }
         });
       }
+      // Separate setting for recurring hand-drop frequency.
+      const handFallFrequencyInput = document.getElementById('handFallFrequencyMinutes');
+      if (handFallFrequencyInput) {
+        try { handFallFrequencyInput.value = localStorage.getItem('handFallFrequencyMinutes') || '10'; } catch (_) {}
+        handFallFrequencyInput.addEventListener('change', () => {
+          const n = Math.max(1, Math.min(1440, Number(handFallFrequencyInput.value) || 10));
+          handFallFrequencyInput.value = String(n);
+          try { localStorage.setItem('handFallFrequencyMinutes', String(n)); } catch (_) {}
+          if (window.__handFallRepeatTimer) clearInterval(window.__handFallRepeatTimer);
+          window.__handFallRepeatTimer = setInterval(() => {
+            const btn = document.getElementById('handFallTestBtn');
+            if (btn) btn.click();
+          }, n * 60000);
+        });
+        const n = Math.max(1, Math.min(1440, Number(handFallFrequencyInput.value) || 10));
+        window.__handFallRepeatTimer = setInterval(() => { const btn = document.getElementById('handFallTestBtn'); if (btn) btn.click(); }, n * 60000);
+      }
+
+      // Allow moving the hand on the main display with mouse/touch; coordinates remain separate from stop-position controls.
+      const sceneHand = document.getElementById('startupFallingHand');
+      const sceneOverlay = document.getElementById('startupSceneOverlay');
+      if (sceneHand && sceneOverlay) {
+        let sceneDragging = false, scenePointerId = null, sceneDx = 0, sceneDy = 0;
+        sceneHand.addEventListener('pointerdown', ev => {
+          if (!sceneOverlay.classList.contains('is-open') && !sceneOverlay.classList.contains('is-visible')) return;
+          sceneDragging = true; scenePointerId = ev.pointerId;
+          const r = sceneHand.getBoundingClientRect(); sceneDx = ev.clientX - (r.left + r.width/2); sceneDy = ev.clientY - (r.top + r.height/2);
+          sceneHand.setPointerCapture?.(ev.pointerId); sceneHand.style.animation = 'none'; sceneHand.style.opacity = '1';
+          sceneHand.style.left = (100*(r.left+r.width/2)/innerWidth)+'%'; sceneHand.style.top = (100*(r.top+r.height/2)/innerHeight)+'%';
+          sceneHand.style.transform = 'translate(-50%,-50%) scale(var(--hand-size,1))'; ev.preventDefault();
+        });
+        sceneHand.addEventListener('pointermove', ev => { if (!sceneDragging || ev.pointerId !== scenePointerId) return;
+          sceneHand.style.left = Math.max(0,Math.min(100,100*(ev.clientX-sceneDx)/innerWidth))+'%';
+          sceneHand.style.top = Math.max(0,Math.min(100,100*(ev.clientY-sceneDy)/innerHeight))+'%'; ev.preventDefault();
+        });
+        const endSceneDrag = ev => { if (ev && scenePointerId !== null && ev.pointerId !== scenePointerId) return; sceneDragging=false; scenePointerId=null; };
+        sceneHand.addEventListener('pointerup',endSceneDrag); sceneHand.addEventListener('pointercancel',endSceneDrag);
+      }
+
       loadHandFallSettingsIntoControls();
 
       // 設定画面を開いている間、落下に使う同じ画像を常時表示します。
