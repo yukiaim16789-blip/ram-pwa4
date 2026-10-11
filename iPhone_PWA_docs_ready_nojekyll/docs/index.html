@@ -9192,3 +9192,62 @@
 })();
 </script>
 
+
+
+<style id="hand-pre-animation-hold-style">
+  /* 演出開始前は、待機画面上の指定位置に手を固定表示する */
+  #startupHandWaitingPreview {
+    position: fixed !important;
+    z-index: 2147482999 !important;
+    display: block !important;
+    max-width: none !important;
+    max-height: 90vh !important;
+    height: auto !important;
+    object-fit: contain !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    transform: translate(-50%, -50%) rotate(-5deg) scale(var(--waiting-hand-size, 1)) !important;
+    filter: drop-shadow(0 18px 22px rgba(0,0,0,.28)) !important;
+  }
+</style>
+<script id="hand-pre-animation-hold-controller">
+(function(){
+  const overlay = document.getElementById('startupSceneOverlay');
+  const original = document.getElementById('startupFallingHand');
+  const toggle = document.getElementById('handFallEnabledToggle');
+  if (!overlay || !original) return;
+  const preview = original.cloneNode(true);
+  preview.id = 'startupHandWaitingPreview';
+  preview.removeAttribute('onanimationend');
+  preview.classList.remove('is-falling');
+  preview.setAttribute('aria-hidden','true');
+  document.body.appendChild(preview);
+
+  function num(id, fallback){
+    const el = document.getElementById(id);
+    const n = Number(el && el.value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  function enabled(){
+    try { return toggle ? toggle.checked : localStorage.getItem('handFallEnabled') !== 'false'; }
+    catch(e) { return !toggle || toggle.checked; }
+  }
+  function sync(){
+    const visible = enabled() && !overlay.classList.contains('is-visible');
+    preview.style.display = visible ? 'block' : 'none';
+    preview.style.left = num('handFallStartXSetting',75) + '%';
+    preview.style.top = num('handFallStartYSetting',5) + '%';
+    preview.style.width = 'min(62vw, 760px)';
+    preview.style.setProperty('--waiting-hand-size', String(Math.max(10,Math.min(200,num('handFallStartSizeSetting',100)))/100));
+  }
+  ['handFallStartXSetting','handFallStartYSetting','handFallStartSizeSetting'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input',sync);
+  });
+  if(toggle) toggle.addEventListener('change',sync);
+  new MutationObserver(sync).observe(overlay,{attributes:true,attributeFilter:['class']});
+  window.addEventListener('storage',sync);
+  sync();
+})();
+</script>
