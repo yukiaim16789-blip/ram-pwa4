@@ -2201,15 +2201,15 @@
     #startupSceneOverlay #startupFallingHand {
       position: absolute;
       z-index: 2;
-      top: 6%;
-      right: 9%;
+      left: var(--hand-x, 75%);
+      top: var(--hand-y, 68%);
+      right: auto;
       width: min(62vw, 760px);
       height: auto;
       max-height: 90vh;
-      scale: var(--hand-size, 1);
       object-fit: contain;
       opacity: 0;
-      transform: translate3d(0, -125vh, 0) rotate(-5deg) scale(.96);
+      transform: translate3d(-50%, -50%, 0) translate3d(0, -125vh, 0) rotate(-5deg) scale(calc(var(--hand-size, 1) * .96));
       pointer-events: none;
       filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .28));
     }
@@ -2218,15 +2218,13 @@
       animation: startupHandFall var(--hand-fall-duration, 900ms) cubic-bezier(.20, .72, .28, 1) both;
     }
     @keyframes startupHandFall {
-      0%   { transform: translate3d(0, calc(0px - var(--hand-drop-distance, 125vh)), 0) rotate(-5deg); }
-      76%  { transform: translate3d(0, 2vh, 0) rotate(1deg); }
-      88%  { transform: translate3d(0, -1.2vh, 0) rotate(-.5deg); }
-      100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+      0%   { transform: translate3d(-50%, -50%, 0) translate3d(0, calc(-100vh - var(--hand-drop-distance, 125vh)), 0) rotate(-5deg) scale(calc(var(--hand-size, 1) * .96)); }
+      70%  { transform: translate3d(-50%, -50%, 0) translate3d(0, 2vh, 0) rotate(1deg) scale(var(--hand-size, 1)); }
+      84%  { transform: translate3d(-50%, -50%, 0) translate3d(0, -1.2vh, 0) rotate(-.5deg) scale(var(--hand-size, 1)); }
+      100% { transform: translate3d(-50%, -50%, 0) translate3d(0, 0, 0) rotate(0deg) scale(var(--hand-size, 1)); }
     }
     @media (max-width: 600px) {
       #startupSceneOverlay #startupFallingHand {
-        top: 12%;
-        right: 2%;
         width: 78vw;
         max-height: 78vh;
       }
@@ -2568,7 +2566,7 @@
       <div style="margin-top:10px;padding:10px;border:1px solid #9b73ff;border-radius:8px;background:rgba(100,70,180,.12);display:flex;flex-direction:column;gap:8px;">
         <h4 style="font-size:.85rem;color:#c8a8ff;margin:0;">🐾 手の落下演出設定</h4>
         <label>落下速度（秒・小さいほど速い）:
-          <input type="number" id="handFallSpeedSetting" min="0.2" max="5" step="0.1" value="0.9">
+          <input type="number" id="handFallSpeedSetting" min="0.2" max="5" step="0.1" value="1.8">
         </label>
         <label>手の大きさ（%）:
           <input type="number" id="handFallSizeSetting" min="20" max="150" step="5" value="100">
@@ -2576,8 +2574,19 @@
         <label>落下距離（画面高さの%）:
           <input type="number" id="handFallDistanceSetting" min="30" max="250" step="5" value="125">
         </label>
+        <label>停止位置 X（左右・画面幅の%）:
+          <input type="number" id="handFallXSetting" min="0" max="100" step="1" value="75">
+        </label>
+        <label>停止位置 Y（上下・画面高さの%）:
+          <input type="number" id="handFallYSetting" min="0" max="100" step="1" value="68">
+        </label>
+        <label>停止位置 Z（奥行き・大きさ%）:
+          <input type="number" id="handFallZSetting" min="30" max="200" step="5" value="100">
+        </label>
+        <div style="font-size:.72rem;color:#c8d5ff;">X=左↔右、Y=上↔下、Z=奥行き感（大きさ）。Zは「手の大きさ」と掛け合わせて反映されます。</div>
         <button id="handFallSettingsSaveBtn" type="button" style="background:#6845a5;border:1px solid #bda0ff;color:#fff;font-weight:bold;">設定を保存</button>
-        <div id="handFallSettingsStatus" style="font-size:.75rem;color:#d9caff;">設定はこのブラウザに保存されます。</div>
+        <button id="handFallTestBtn" type="button" style="background:linear-gradient(135deg,#00b8ff,#6845a5);border:1px solid #a8e8ff;color:#fff;font-weight:bold;">▶️ 手の落下をテスト</button>
+        <div id="handFallSettingsStatus" style="font-size:.75rem;color:#d9caff;">設定はこのブラウザに保存されます。テストボタンで現在の設定をすぐ確認できます。</div>
       </div>
 
       <button id="startPachinkoBtn" style="background: linear-gradient(135deg, #ff007f, #7928ca); font-weight:bold; margin-top:4px;">▶️ パチンコ風抽選スタート</button>
@@ -8619,22 +8628,29 @@
       if (!overlay) return;
       let showTimer = null;
       let isShown = false;
+      let pendingPreviewSettings = null;
 
       const fallingHand = document.getElementById('startupFallingHand');
       const sceneBgm = document.getElementById('startupSceneBgm');
       const sceneBackground = document.getElementById('startupSceneBackground');
 
       function readHandFallSettings() {
-        let settings = { speed: 0.9, size: 100, distance: 125 };
+        let settings = { speed: 1.8, size: 100, distance: 125, x: 75, y: 68, z: 100 };
         try {
           const saved = JSON.parse(localStorage.getItem('handFallSceneSettings') || '{}');
           settings.speed = Number(saved.speed) || settings.speed;
           settings.size = Number(saved.size) || settings.size;
           settings.distance = Number(saved.distance) || settings.distance;
+          if (Number.isFinite(Number(saved.x))) settings.x = Number(saved.x);
+          if (Number.isFinite(Number(saved.y))) settings.y = Number(saved.y);
+          if (Number.isFinite(Number(saved.z))) settings.z = Number(saved.z);
         } catch (_) {}
         settings.speed = Math.max(0.2, Math.min(5, settings.speed));
         settings.size = Math.max(20, Math.min(150, settings.size));
         settings.distance = Math.max(30, Math.min(250, settings.distance));
+        settings.x = Math.max(0, Math.min(100, settings.x));
+        settings.y = Math.max(0, Math.min(100, settings.y));
+        settings.z = Math.max(30, Math.min(200, settings.z));
         return settings;
       }
 
@@ -8642,15 +8658,26 @@
         const settings = readHandFallSettings();
         if (!overlay) return;
         overlay.style.setProperty('--hand-fall-duration', settings.speed + 's');
-        overlay.style.setProperty('--hand-size', String(settings.size / 100));
+        overlay.style.setProperty('--hand-size', String((settings.size / 100) * (settings.z / 100)));
         overlay.style.setProperty('--hand-drop-distance', settings.distance + 'vh');
+        overlay.style.setProperty('--hand-x', settings.x + '%');
+        overlay.style.setProperty('--hand-y', settings.y + '%');
         return settings;
       }
 
       function showStartupScene() {
         if (isShown) return;
         isShown = true;
-        applyHandFallSettings();
+        if (pendingPreviewSettings) {
+          overlay.style.setProperty('--hand-fall-duration', pendingPreviewSettings.speed + 's');
+          overlay.style.setProperty('--hand-size', String((pendingPreviewSettings.size / 100) * (pendingPreviewSettings.z / 100)));
+          overlay.style.setProperty('--hand-drop-distance', pendingPreviewSettings.distance + 'vh');
+          overlay.style.setProperty('--hand-x', pendingPreviewSettings.x + '%');
+          overlay.style.setProperty('--hand-y', pendingPreviewSettings.y + '%');
+          pendingPreviewSettings = null;
+        } else {
+          applyHandFallSettings();
+        }
         overlay.classList.remove('is-landed');
         overlay.classList.add('is-visible');
         overlay.setAttribute('aria-hidden', 'false');
@@ -8707,6 +8734,9 @@
       const speedInput = document.getElementById('handFallSpeedSetting');
       const sizeInput = document.getElementById('handFallSizeSetting');
       const distanceInput = document.getElementById('handFallDistanceSetting');
+      const xInput = document.getElementById('handFallXSetting');
+      const yInput = document.getElementById('handFallYSetting');
+      const zInput = document.getElementById('handFallZSetting');
       const saveSettingsButton = document.getElementById('handFallSettingsSaveBtn');
       const settingsStatus = document.getElementById('handFallSettingsStatus');
 
@@ -8715,14 +8745,20 @@
         if (speedInput) speedInput.value = settings.speed;
         if (sizeInput) sizeInput.value = settings.size;
         if (distanceInput) distanceInput.value = settings.distance;
+        if (xInput) xInput.value = settings.x;
+        if (yInput) yInput.value = settings.y;
+        if (zInput) zInput.value = settings.z;
         applyHandFallSettings();
       }
       if (saveSettingsButton) {
         saveSettingsButton.addEventListener('click', () => {
           const settings = {
-            speed: Math.max(0.2, Math.min(5, Number(speedInput && speedInput.value) || 0.9)),
+            speed: Math.max(0.2, Math.min(5, Number(speedInput && speedInput.value) || 1.8)),
             size: Math.max(20, Math.min(150, Number(sizeInput && sizeInput.value) || 100)),
-            distance: Math.max(30, Math.min(250, Number(distanceInput && distanceInput.value) || 125))
+            distance: Math.max(30, Math.min(250, Number(distanceInput && distanceInput.value) || 125)),
+            x: Math.max(0, Math.min(100, Number(xInput && xInput.value) || 0)),
+            y: Math.max(0, Math.min(100, Number(yInput && yInput.value) || 0)),
+            z: Math.max(30, Math.min(200, Number(zInput && zInput.value) || 100))
           };
           try {
             localStorage.setItem('handFallSceneSettings', JSON.stringify(settings));
@@ -8734,6 +8770,28 @@
         });
       }
       loadHandFallSettingsIntoControls();
+
+      const handFallTestButton = document.getElementById('handFallTestBtn');
+      if (handFallTestButton) {
+        handFallTestButton.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          // テスト時は保存前の入力値もそのまま使用する。
+          const previewSettings = {
+            speed: Math.max(0.2, Math.min(5, Number(speedInput && speedInput.value) || 1.8)),
+            size: Math.max(20, Math.min(150, Number(sizeInput && sizeInput.value) || 100)),
+            distance: Math.max(30, Math.min(250, Number(distanceInput && distanceInput.value) || 125)),
+            x: Math.max(0, Math.min(100, Number(xInput && xInput.value) || 0)),
+            y: Math.max(0, Math.min(100, Number(yInput && yInput.value) || 0)),
+            z: Math.max(30, Math.min(200, Number(zInput && zInput.value) || 100))
+          };
+          pendingPreviewSettings = previewSettings;
+          if (isShown) hideStartupScene();
+          // 設定画面上のボタンから呼び出しても、オーバーレイの自動終了を防いで再生。
+          showStartupScene();
+          if (settingsStatus) settingsStatus.textContent = 'テスト中：現在の入力値で手の落下を再生しています。クリック／タップまたはEscで戻れます。';
+        });
+      }
 
       overlay.addEventListener('click', hideStartupScene);
       overlay.addEventListener('touchend', (event) => {
