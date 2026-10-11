@@ -2197,9 +2197,12 @@
       #startupSceneOverlay { transition: none; }
     }
   
-    /* 設定中に表示する、実際の落下画像と同じ手のプレビュー */
-    #handFallImagePreview { max-width: 100%; }
+    /* 設定中に表示する、ドラッグ可能な手のプレビュー */
+    #handFallImagePreviewBox { position: relative; min-height: 260px; overflow: hidden; touch-action: none; }
+    #handFallImagePreview { max-width: 100%; cursor: grab; user-select: none; -webkit-user-drag: none; touch-action: none; }
+    #handFallImagePreview.is-dragging { cursor: grabbing; }
     #handFallImagePreviewBox img { opacity: 1; visibility: visible; }
+    #handFallDragHelp { font-size: .7rem; color: #b9d8ff; text-align: center; }
 
     /* 巨大なふわふわの手が画面上から落下し、着地後に効果音を鳴らす */
     #startupSceneOverlay #startupFallingHand {
@@ -2573,6 +2576,7 @@
           <div style="font-size:.78rem;color:#dceaff;font-weight:bold;">使用する手の画像（設定中は常に表示）</div>
           <img id="handFallImagePreview" src="./ふわふわ雲毛の黒爪パッド付きパウ.png" alt="ふわふわ雲毛の黒爪パッド付きパウ" loading="eager" style="display:block;width:min(100%,280px);height:190px;object-fit:contain;transform-origin:center;filter:drop-shadow(0 5px 10px rgba(0,0,0,.35));" />
           <div id="handFallImagePreviewStatus" style="font-size:.7rem;color:#a9c5ed;text-align:center;">GitHub上の「ふわふわ雲毛の黒爪パッド付きパウ.png」を使用します。</div>
+          <div id="handFallDragHelp">手をドラッグしてX・Yを調整／ホイール操作でZ（大きさ）を調整</div>
         </div>
         <label>落下速度（秒・小さいほど速い）:
           <input type="number" id="handFallSpeedSetting" min="0.2" max="5" step="0.1" value="1.8">
@@ -8812,6 +8816,64 @@
         if (input) input.addEventListener('input', updateHandImagePreview);
       });
       updateHandImagePreview();
+
+      // 設定画面の手画像を直接ドラッグして停止位置X/Yを調整。
+      // マウスホイール／タッチパッドのスクロールでZ（奥行き・大きさ）も調整。
+      const handPreviewBox = document.getElementById('handFallImagePreviewBox');
+      if (handImagePreview && handPreviewBox) {
+        let draggingHand = false;
+        let dragStartX = 0, dragStartY = 0, dragOriginX = 75, dragOriginY = 68;
+        const clampValue = (v, min, max) => Math.max(min, Math.min(max, v));
+        const refreshPreviewPosition = () => {
+          const x = clampValue(Number(xInput && xInput.value) || 0, 0, 100);
+          const y = clampValue(Number(yInput && yInput.value) || 0, 0, 100);
+          const size = clampValue(Number(sizeInput && sizeInput.value) || 100, 20, 150);
+          const z = clampValue(Number(zInput && zInput.value) || 100, 30, 200);
+          const rotation = clampValue(Number(rotationInput && rotationInput.value) || 0, 0, 720);
+          handImagePreview.style.position = 'absolute';
+          handImagePreview.style.left = x + '%';
+          handImagePreview.style.top = y + '%';
+          handImagePreview.style.width = 'min(65%, 280px)';
+          handImagePreview.style.height = '190px';
+          handImagePreview.style.objectFit = 'contain';
+          handImagePreview.style.transform = `translate(-50%, -50%) scale(${(size / 100) * (z / 100)}) rotate(${rotation ? Math.min(45, rotation / 8) : 0}deg)`;
+          handImagePreview.style.transformOrigin = 'center';
+        };
+        const syncPreviewInputs = () => {
+          [xInput, yInput, sizeInput, zInput, rotationInput].forEach(input => {
+            if (input) input.addEventListener('input', refreshPreviewPosition);
+          });
+          refreshPreviewPosition();
+        };
+        handImagePreview.addEventListener('pointerdown', (event) => {
+          draggingHand = true;
+          handImagePreview.classList.add('is-dragging');
+          dragStartX = event.clientX;
+          dragStartY = event.clientY;
+          dragOriginX = clampValue(Number(xInput && xInput.value) || 0, 0, 100);
+          dragOriginY = clampValue(Number(yInput && yInput.value) || 0, 0, 100);
+          try { handImagePreview.setPointerCapture(event.pointerId); } catch (_) {}
+          event.preventDefault();
+        });
+        handImagePreview.addEventListener('pointermove', (event) => {
+          if (!draggingHand) return;
+          const rect = handPreviewBox.getBoundingClientRect();
+          if (xInput) xInput.value = Math.round(clampValue(dragOriginX + (event.clientX - dragStartX) / Math.max(1, rect.width) * 100, 0, 100));
+          if (yInput) yInput.value = Math.round(clampValue(dragOriginY + (event.clientY - dragStartY) / Math.max(1, rect.height) * 100, 0, 100));
+          refreshPreviewPosition();
+          event.preventDefault();
+        });
+        const stopDraggingHand = () => { draggingHand = false; handImagePreview.classList.remove('is-dragging'); };
+        handImagePreview.addEventListener('pointerup', stopDraggingHand);
+        handImagePreview.addEventListener('pointercancel', stopDraggingHand);
+        handImagePreview.addEventListener('lostpointercapture', stopDraggingHand);
+        handPreviewBox.addEventListener('wheel', (event) => {
+          event.preventDefault();
+          if (zInput) zInput.value = clampValue((Number(zInput.value) || 100) + (event.deltaY < 0 ? 5 : -5), 30, 200);
+          refreshPreviewPosition();
+        }, {passive:false});
+        syncPreviewInputs();
+      }
 
       const handFallTestButton = document.getElementById('handFallTestBtn');
       if (handFallTestButton) {
