@@ -2198,7 +2198,7 @@
     }
   
     /* 設定中に表示する、ドラッグ可能な手のプレビュー */
-    #handFallImagePreviewBox { position: relative; min-height: 300px; overflow: hidden; touch-action: none; display:block !important; padding-top:34px !important; }
+    #handFallImagePreviewBox { position: relative; min-height: 330px; overflow: hidden; touch-action: none; display:block !important; padding-top:34px !important; }
     #handFallImagePreviewBox > div:first-child { position:relative; z-index:3; text-align:center; }
     #handFallImagePreview { position:absolute; display:block; width:150px; height:150px; max-width:none; object-fit:contain; left:75%; top:68%; transform:translate(-50%,-50%); cursor:grab; user-select:none; -webkit-user-drag:none; touch-action:none; z-index:2; }
     #handFallImagePreview.is-dragging { cursor: grabbing; }
@@ -2227,10 +2227,11 @@
       animation: startupHandFall var(--hand-fall-duration, 900ms) cubic-bezier(.20, .72, .28, 1) both;
     }
     @keyframes startupHandFall {
-      0%   { transform: translate3d(-50%, -50%, 0) translate3d(0, calc(-100vh - var(--hand-drop-distance, 125vh)), 0) rotate(-5deg) scale(calc(var(--hand-size, 1) * .96)); }
-      70%  { transform: translate3d(-50%, -50%, 0) translate3d(0, 2vh, 0) rotate(var(--hand-rotation-end, 162deg)) scale(var(--hand-size, 1)); }
-      84%  { transform: translate3d(-50%, -50%, 0) translate3d(0, -1.2vh, 0) rotate(calc(var(--hand-rotation-end, 162deg) + 3deg)) scale(var(--hand-size, 1)); }
-      100% { transform: translate3d(-50%, -50%, 0) translate3d(0, 0, 0) rotate(var(--hand-rotation-end, 162deg)) scale(var(--hand-size, 1)); }
+      0% { left: var(--hand-start-x, 75%); top: var(--hand-start-y, 5%); width: min(62vw, 760px); opacity: 0; transform: translate(-50%,-50%) rotate(-5deg) scale(var(--hand-start-size,1)); }
+      8% { opacity: 1; }
+      70% { left: var(--hand-x,75%); top: calc(var(--hand-y,68%) + 2vh); transform: translate(-50%,-50%) rotate(var(--hand-rotation-end,162deg)) scale(var(--hand-size,1)); }
+      84% { left: var(--hand-x,75%); top: calc(var(--hand-y,68%) - 1.2vh); transform: translate(-50%,-50%) rotate(calc(var(--hand-rotation-end,162deg) + 3deg)) scale(var(--hand-size,1)); }
+      100% { left: var(--hand-x,75%); top: var(--hand-y,68%); opacity: 1; transform: translate(-50%,-50%) rotate(var(--hand-rotation-end,162deg)) scale(var(--hand-size,1)); }
     }
     @media (max-width: 600px) {
       #startupSceneOverlay #startupFallingHand {
@@ -2583,8 +2584,15 @@
         <label>落下速度（秒・小さいほど速い）:
           <input type="number" id="handFallSpeedSetting" min="0.2" max="5" step="0.1" value="1.8">
         </label>
-        <label>手の大きさ（%）:
-          <input type="number" id="handFallSizeSetting" min="20" max="150" step="5" value="100">
+        <details open style="border:1px solid rgba(0,220,255,.35);border-radius:7px;padding:8px;margin:5px 0;">
+          <summary style="cursor:pointer;color:#63eaff;font-weight:bold;">① 落下開始時点の位置・大きさ</summary>
+          <p style="font-size:.72rem;color:#c8d5ff;margin:6px 0;">画面上で手をドラッグして開始位置を調整できます。数値でも変更できます。</p>
+          <label>開始位置 X（左右・%）:<input type="number" id="handFallStartXSetting" min="0" max="100" step="1" value="75"></label>
+          <label>開始位置 Y（上下・%）:<input type="number" id="handFallStartYSetting" min="0" max="100" step="1" value="5"></label>
+          <label>開始時の大きさ（%）:<input type="number" id="handFallStartSizeSetting" min="10" max="200" step="5" value="100"></label>
+        </details>
+        <label>手の大きさ（最終時点・%）:
+          <input type="number" id="handFallSizeSetting" min="20" max="200" step="5" value="100">
         </label>
         <label>落下距離（画面高さの%）:
           <input type="number" id="handFallDistanceSetting" min="30" max="250" step="5" value="125">
@@ -8665,7 +8673,7 @@
       const sceneBackground = document.getElementById('startupSceneBackground');
 
       function readHandFallSettings() {
-        let settings = { speed: 1.8, size: 100, distance: 125, x: 75, y: 68, z: 100, rotation: 90 };
+        let settings = { speed: 1.8, size: 100, distance: 125, x: 75, y: 68, z: 100, rotation: 90, startX: 75, startY: 5, startSize: 100 };
         try {
           const saved = JSON.parse(localStorage.getItem('handFallSceneSettings') || '{}');
           settings.speed = Number(saved.speed) || settings.speed;
@@ -8675,6 +8683,9 @@
           if (Number.isFinite(Number(saved.y))) settings.y = Number(saved.y);
           if (Number.isFinite(Number(saved.z))) settings.z = Number(saved.z);
           if (Number.isFinite(Number(saved.rotation))) settings.rotation = Number(saved.rotation);
+          if (Number.isFinite(Number(saved.startX))) settings.startX = Number(saved.startX);
+          if (Number.isFinite(Number(saved.startY))) settings.startY = Number(saved.startY);
+          if (Number.isFinite(Number(saved.startSize))) settings.startSize = Number(saved.startSize);
         } catch (_) {}
         settings.speed = Math.max(0.2, Math.min(5, settings.speed));
         settings.size = Math.max(20, Math.min(150, settings.size));
@@ -8683,6 +8694,9 @@
         settings.y = Math.max(0, Math.min(100, settings.y));
         settings.z = Math.max(30, Math.min(200, settings.z));
         settings.rotation = Math.max(0, Math.min(720, settings.rotation));
+        settings.startX = Math.max(0, Math.min(100, settings.startX));
+        settings.startY = Math.max(0, Math.min(100, settings.startY));
+        settings.startSize = Math.max(10, Math.min(200, settings.startSize));
         return settings;
       }
 
@@ -8695,6 +8709,9 @@
         overlay.style.setProperty('--hand-x', settings.x + '%');
         overlay.style.setProperty('--hand-y', settings.y + '%');
         overlay.style.setProperty('--hand-rotation-end', (settings.rotation * settings.speed) + 'deg');
+        overlay.style.setProperty('--hand-start-x', settings.startX + '%');
+        overlay.style.setProperty('--hand-start-y', settings.startY + '%');
+        overlay.style.setProperty('--hand-start-size', String(settings.startSize / 100));
         return settings;
       }
 
@@ -8708,6 +8725,9 @@
           overlay.style.setProperty('--hand-x', pendingPreviewSettings.x + '%');
           overlay.style.setProperty('--hand-y', pendingPreviewSettings.y + '%');
           overlay.style.setProperty('--hand-rotation-end', (pendingPreviewSettings.rotation * pendingPreviewSettings.speed) + 'deg');
+          overlay.style.setProperty('--hand-start-x', (pendingPreviewSettings.startX ?? 75) + '%');
+          overlay.style.setProperty('--hand-start-y', (pendingPreviewSettings.startY ?? 5) + '%');
+          overlay.style.setProperty('--hand-start-size', String((pendingPreviewSettings.startSize ?? 100) / 100));
           pendingPreviewSettings = null;
         } else {
           applyHandFallSettings();
@@ -8772,6 +8792,9 @@
       const yInput = document.getElementById('handFallYSetting');
       const zInput = document.getElementById('handFallZSetting');
       const rotationInput = document.getElementById('handFallRotationSetting');
+      const startXInput = document.getElementById('handFallStartXSetting');
+      const startYInput = document.getElementById('handFallStartYSetting');
+      const startSizeInput = document.getElementById('handFallStartSizeSetting');
       const saveSettingsButton = document.getElementById('handFallSettingsSaveBtn');
       const settingsStatus = document.getElementById('handFallSettingsStatus');
 
@@ -8784,6 +8807,9 @@
         if (yInput) yInput.value = settings.y;
         if (zInput) zInput.value = settings.z;
         if (rotationInput) rotationInput.value = settings.rotation;
+        if (startXInput) startXInput.value = settings.startX;
+        if (startYInput) startYInput.value = settings.startY;
+        if (startSizeInput) startSizeInput.value = settings.startSize;
         applyHandFallSettings();
       }
       if (saveSettingsButton) {
@@ -8795,7 +8821,13 @@
             x: Math.max(0, Math.min(100, Number(xInput && xInput.value) || 0)),
             y: Math.max(0, Math.min(100, Number(yInput && yInput.value) || 0)),
             z: Math.max(30, Math.min(200, Number(zInput && zInput.value) || 100)),
-            rotation: Math.max(0, Math.min(720, Number(rotationInput && rotationInput.value) || 0))
+            rotation: Math.max(0, Math.min(720, Number(rotationInput && rotationInput.value) || 0)),
+            startX: Math.max(0, Math.min(100, Number(startXInput && startXInput.value) || 0)),
+            startY: Math.max(0, Math.min(100, Number(startYInput && startYInput.value) || 5)),
+            startSize: Math.max(10, Math.min(200, Number(startSizeInput && startSizeInput.value) || 100)),
+            startX: Math.max(0, Math.min(100, Number(startXInput && startXInput.value) || 0)),
+            startY: Math.max(0, Math.min(100, Number(startYInput && startYInput.value) || 5)),
+            startSize: Math.max(10, Math.min(200, Number(startSizeInput && startSizeInput.value) || 100))
           };
           try {
             localStorage.setItem('handFallSceneSettings', JSON.stringify(settings));
@@ -8904,7 +8936,7 @@
           handImagePreview.style.transformOrigin = 'center';
         };
         const syncPreviewInputs = () => {
-          [xInput, yInput, sizeInput, zInput, rotationInput].forEach(input => {
+          [xInput, yInput, sizeInput, zInput, rotationInput, startXInput, startYInput, startSizeInput].forEach(input => {
             if (input) input.addEventListener('input', refreshPreviewPosition);
           });
           refreshPreviewPosition();
@@ -8917,8 +8949,8 @@
           handImagePreview.classList.add('is-dragging');
           dragStartX = event.clientX;
           dragStartY = event.clientY;
-          dragOriginX = clampValue(Number(xInput && xInput.value) || 0, 0, 100);
-          dragOriginY = clampValue(Number(yInput && yInput.value) || 0, 0, 100);
+          dragOriginX = clampValue(Number(startXInput && startXInput.value) || 75, 0, 100);
+          dragOriginY = clampValue(Number(startYInput && startYInput.value) || 5, 0, 100);
           try { handImagePreview.setPointerCapture(event.pointerId); } catch (_) {}
           event.preventDefault();
           event.stopPropagation();
@@ -8929,11 +8961,11 @@
           if (rect.width <= 0 || rect.height <= 0) return;
           if (xInput) {
             xInput.value = String(Math.round(clampValue(dragOriginX + (event.clientX - dragStartX) / rect.width * 100, 0, 100)));
-            xInput.dispatchEvent(new Event('input', { bubbles: true }));
+            startXInput.dispatchEvent(new Event('input', { bubbles: true }));
           }
           if (yInput) {
             yInput.value = String(Math.round(clampValue(dragOriginY + (event.clientY - dragStartY) / rect.height * 100, 0, 100)));
-            yInput.dispatchEvent(new Event('input', { bubbles: true }));
+            startYInput.dispatchEvent(new Event('input', { bubbles: true }));
           }
           refreshPreviewPosition();
           event.preventDefault();
