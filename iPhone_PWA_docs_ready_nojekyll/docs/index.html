@@ -2635,6 +2635,13 @@
           <summary style="cursor:pointer;color:#ff72b4;font-weight:bold;">② 落下後の停止位置</summary>
           <p style="font-size:.72rem;color:#c8d5ff;margin:6px 0;">下のX・Y設定は落下後に止まる位置です。手の表示位置とは別に調整できます。</p>
         </details>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px;border:1px solid rgba(168,232,255,.4);border-radius:8px;background:rgba(0,0,0,.2);">
+          <span style="font-weight:bold;color:#eaf7ff;">🐾 手の落下演出</span>
+          <label style="display:flex;align-items:center;gap:8px;flex-direction:row!important;">
+            <input type="checkbox" id="handFallEnabledToggle" checked style="width:18px;height:18px;">
+            <span id="handFallEnabledLabel">ON</span>
+          </label>
+        </div>
         <label>手の落下演出を行う頻度（分ごと）:
           <input type="number" id="handFallFrequencyMinutes" min="1" max="1440" step="1" value="10">
         </label>
@@ -9139,3 +9146,49 @@
  window.addEventListener('resize',()=>{if(!animation)placeAtEnd();});getImage();placeAtEnd();
 })();
 </script>
+
+<script id="hand-fall-on-off-controller">
+(function(){
+  const toggle=document.getElementById('handFallEnabledToggle');
+  const label=document.getElementById('handFallEnabledLabel');
+  const frequency=document.getElementById('handFallFrequencyMinutes');
+  const testButton=document.getElementById('handFallTestBtn');
+  if(!toggle) return;
+  let enabled=true;
+  try { enabled=localStorage.getItem('handFallEnabled')!=='false'; } catch(e) {}
+  toggle.checked=enabled;
+  function updateLabel(){
+    enabled=toggle.checked;
+    if(label) label.textContent=enabled?'ON':'OFF';
+    if(label) label.style.color=enabled?'#63eaff':'#ff6b9d';
+    try { localStorage.setItem('handFallEnabled',String(enabled)); } catch(e) {}
+    if(!enabled){
+      if(window.__handFallRepeatTimer){clearInterval(window.__handFallRepeatTimer);window.__handFallRepeatTimer=null;}
+      const overlay=document.getElementById('startupSceneOverlay');
+      const hand=document.getElementById('startupFallingHand');
+      if(hand) hand.classList.remove('is-falling');
+      if(overlay) overlay.classList.remove('is-landed');
+    } else {
+      startRepeatTimer();
+    }
+  }
+  function startRepeatTimer(){
+    if(window.__handFallRepeatTimer) clearInterval(window.__handFallRepeatTimer);
+    window.__handFallRepeatTimer=null;
+    if(!enabled) return;
+    const mins=Math.max(1,Math.min(1440,Number(frequency&&frequency.value)||10));
+    window.__handFallRepeatTimer=setInterval(()=>{
+      if(!enabled) return;
+      const btn=document.getElementById('handFallTestBtn');
+      if(btn) btn.click();
+    },mins*60000);
+  }
+  toggle.addEventListener('change',updateLabel);
+  if(frequency) frequency.addEventListener('change',()=>{if(enabled) startRepeatTimer();});
+  if(testButton) testButton.addEventListener('click',e=>{
+    if(!enabled){e.preventDefault();e.stopImmediatePropagation();return false;}
+  },true);
+  updateLabel();
+})();
+</script>
+
