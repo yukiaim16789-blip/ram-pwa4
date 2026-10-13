@@ -2170,14 +2170,13 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      z-index: 2;
+      z-index: 1;
       opacity: 0;
       pointer-events: none;
       transition: opacity .35s ease;
-      background: transparent;
+      background: #080b18;
     }
-    /* 動画が正常に読み込まれた場合だけ動画を表示する */
-    #startupSceneOverlay.is-landed.video-ready .hand-fall-after-video { opacity: 1; }
+    #startupSceneOverlay.is-landed .hand-fall-after-video { opacity: 1; }
     #startupSceneOverlay #startupSceneBackground {
       position: absolute;
       inset: 0;
@@ -2189,11 +2188,7 @@
     #startupSceneOverlay.is-landed {
       background: #080b18;
     }
-    /* 動画の読み込み失敗時も、元の背景画像を表示して黒画面を防ぐ */
     #startupSceneOverlay.is-landed #startupSceneBackground {
-      opacity: 1;
-    }
-    #startupSceneOverlay.is-landed.video-ready #startupSceneBackground {
       opacity: 0;
     }
     #startupSceneOverlay.is-landed #startupFallingHand {
@@ -8727,18 +8722,6 @@
       const sceneBgm = document.getElementById('startupSceneBgm');
       const sceneBackground = document.getElementById('startupSceneBackground');
       const afterFallVideo = document.getElementById('手落下後背景動画');
-      const afterFallVideoSource = document.getElementById('handFallAfterVideoSource');
-      if (afterFallVideo && afterFallVideoSource) {
-        // URLを現在のGitHub Pages公開パスから解決する（日本語名もURLとして安全に処理）
-        const videoUrl = new URL('./手落下後背景動画.mp4', window.location.href);
-        afterFallVideoSource.src = videoUrl.href;
-        afterFallVideo.addEventListener('canplay', () => overlay.classList.add('video-ready'));
-        afterFallVideo.addEventListener('error', () => {
-          overlay.classList.remove('video-ready');
-          console.error('手落下後背景動画を読み込めません。背景画像に切り替えます。', afterFallVideo.error);
-        });
-        afterFallVideo.load();
-      }
 
       function readHandFallSettings() {
         let settings = { speed: 1, size: 100, distance: 125, x: 75, y: 68, z: 100, rotation: 90, startX: 75, startY: 5, startSize: 100 };
