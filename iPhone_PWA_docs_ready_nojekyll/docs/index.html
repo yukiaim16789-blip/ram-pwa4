@@ -8713,13 +8713,27 @@
       const sceneBackground = document.getElementById('startupSceneBackground');
       const afterFallVideo = document.getElementById('hand落下後背景動画');
 
-      // GitHub Pages: preload the video from the repository root and report load failures.
+      // GitHub Pages: ルート直下の動画を明示的に読み込み、失敗理由を診断できるようにする。
       if (afterFallVideo) {
         afterFallVideo.muted = true;
+        afterFallVideo.defaultMuted = true;
         afterFallVideo.loop = true;
         afterFallVideo.playsInline = true;
+        afterFallVideo.preload = 'auto';
+        afterFallVideo.addEventListener('loadedmetadata', () => {
+          console.info('[背景動画] メタデータ読み込み完了:', {
+            url: afterFallVideo.currentSrc,
+            duration: afterFallVideo.duration,
+            videoWidth: afterFallVideo.videoWidth,
+            videoHeight: afterFallVideo.videoHeight
+          });
+        });
         afterFallVideo.addEventListener('error', () => {
-          console.error('[背景動画] 読み込み失敗:', afterFallVideo.currentSrc || '(URLなし)', afterFallVideo.error);
+          console.error('[背景動画] 読み込み失敗:', {
+            url: afterFallVideo.currentSrc || '(URLなし)',
+            code: afterFallVideo.error?.code,
+            message: afterFallVideo.error?.message
+          });
         });
       }
 
@@ -8728,23 +8742,47 @@
         if (!afterFallVideo || !isShown) return;
         const requestId = ++afterFallVideoPlayRequest;
         try {
-          // play()の開始直後にpause()を呼ぶ競合を避ける。再生中でなければ先頭から再生する。
-          if (afterFallVideo.paused) {
-            try {
-              if (Number.isFinite(afterFallVideo.duration) && afterFallVideo.currentTime >= afterFallVideo.duration) {
-                afterFallVideo.currentTime = 0;
-              } else if (afterFallVideo.ended) {
-                afterFallVideo.currentTime = 0;
+          // 動画の読み込みがまだ始まっていない場合に備えて明示的にロードする。
+          if (afterFallVideo.networkState === HTMLMediaElement.NETWORK_EMPTY) {
+            afterFallVideo.load();
+          }
+
+          // メタデータが未取得なら、読み込み完了を短く待ってから再生を試みる。
+          if (afterFallVideo.readyState < HTMLMediaElement.HAVE_METADATA) {
+            await new Promise((resolve, reject) => {
+              const cleanup = () => {
+                afterFallVideo.removeEventListener('loadedmetadata', onReady);
+                afterFallVideo.removeEventListener('error', onError);
+              };
+              const onReady = () => { cleanup(); resolve(); };
+              const onError = () => {
+                cleanup();
+                reject(new Error('動画ファイルを読み込めません。ファイル名・配置・MP4形式を確認してください。'));
+              };
+              afterFallVideo.addEventListener('loadedmetadata', onReady, { once: true });
+              afterFallVideo.addEventListener('error', onError, { once: true });
+              // イベント登録直前に読み込みが完了した場合も取りこぼさない。
+              if (afterFallVideo.readyState >= HTMLMediaElement.HAVE_METADATA) {
+                cleanup();
+                resolve();
               }
-            } catch (_) {}
+            });
+          }
+
+          if (requestId !== afterFallVideoPlayRequest || !isShown) return;
+          if (afterFallVideo.paused || afterFallVideo.ended) {
+            if (afterFallVideo.ended) {
+              try { afterFallVideo.currentTime = 0; } catch (_) {}
+            }
+            // play()中にpause()しない。画面を閉じる処理だけが再生を停止する。
             const result = afterFallVideo.play();
             if (result && typeof result.then === 'function') await result;
           }
-          // 待機中に画面が閉じられた場合は、古い再生要求を成功扱いにしない。
           if (requestId !== afterFallVideoPlayRequest || !isShown) return;
+          console.info('[背景動画] 再生開始:', afterFallVideo.currentSrc || '(URLなし)');
         } catch (error) {
-          // 画面を閉じる操作などで再生要求が中断されたAbortErrorは、通常の競合なのでエラー扱いしない。
           if (error && error.name === 'AbortError') {
+            // 画面を閉じたタイミングでブラウザが再生要求を中断した場合は正常な競合。
             console.info('[背景動画] 再生要求が中断されました（画面切り替え等）。');
             return;
           }
