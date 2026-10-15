@@ -8723,17 +8723,32 @@
         });
       }
 
-      function playAfterFallVideo() {
-        if (!afterFallVideo) return;
+      let afterFallVideoPlayRequest = 0;
+      async function playAfterFallVideo() {
+        if (!afterFallVideo || !isShown) return;
+        const requestId = ++afterFallVideoPlayRequest;
         try {
-          afterFallVideo.pause();
-          afterFallVideo.currentTime = 0;
-          const promise = afterFallVideo.play();
-          if (promise && typeof promise.catch === 'function') {
-            promise.catch(error => console.error('[背景動画] 再生失敗:', error));
+          // play()の開始直後にpause()を呼ぶ競合を避ける。再生中でなければ先頭から再生する。
+          if (afterFallVideo.paused) {
+            try {
+              if (Number.isFinite(afterFallVideo.duration) && afterFallVideo.currentTime >= afterFallVideo.duration) {
+                afterFallVideo.currentTime = 0;
+              } else if (afterFallVideo.ended) {
+                afterFallVideo.currentTime = 0;
+              }
+            } catch (_) {}
+            const result = afterFallVideo.play();
+            if (result && typeof result.then === 'function') await result;
           }
+          // 待機中に画面が閉じられた場合は、古い再生要求を成功扱いにしない。
+          if (requestId !== afterFallVideoPlayRequest || !isShown) return;
         } catch (error) {
-          console.error('[背景動画] 再生処理エラー:', error);
+          // 画面を閉じる操作などで再生要求が中断されたAbortErrorは、通常の競合なのでエラー扱いしない。
+          if (error && error.name === 'AbortError') {
+            console.info('[背景動画] 再生要求が中断されました（画面切り替え等）。');
+            return;
+          }
+          console.error('[背景動画] 再生失敗:', error, afterFallVideo.currentSrc || '(URLなし)');
         }
       }
 
@@ -8837,7 +8852,7 @@
           fallingHand.onanimationend = null;
           fallingHand.style.display = 'block';
         }
-        if (afterFallVideo) { afterFallVideo.pause(); try { afterFallVideo.currentTime = 0; } catch (_) {} }
+        if (afterFallVideo) { afterFallVideoPlayRequest++; afterFallVideo.pause(); try { afterFallVideo.currentTime = 0; } catch (_) {} }
         if (sceneBgm) {
           sceneBgm.pause();
           try { sceneBgm.currentTime = 0; } catch (_) {}
