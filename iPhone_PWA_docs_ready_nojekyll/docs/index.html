@@ -8126,22 +8126,11 @@
     const backupExcluded = [''];
     function collectSettingsForBackup() {
       const data = {};
-      // 通常の設定キーをまとめて保存
       for (let i=0; i<localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key || key.startsWith(backupPrefix)) continue;
         try { data[key] = JSON.parse(localStorage.getItem(key)); } catch(e) { data[key] = localStorage.getItem(key); }
       }
-
-      // 🖐️ 手落下演出の設定も明示的にバックアップ対象にする。
-      // 現在の手落下設定（速度・サイズ・落下距離・着地点/開始位置・回転）と
-      // 繰り返し間隔を、スロット保存およびJSON書き出しに必ず含める。
-      const handFallBackupKeys = ['handFallSceneSettings', 'handFallFrequencyMinutes'];
-      handFallBackupKeys.forEach(key => {
-        const raw = localStorage.getItem(key);
-        if (raw === null) return;
-        try { data[key] = JSON.parse(raw); } catch(e) { data[key] = raw; }
-      });
       return data;
     }
     // 📱💻 スロット2専用：PC/iPhone設定
@@ -8721,7 +8710,7 @@
       const fallingHand = document.getElementById('startupFallingHand');
       const sceneBgm = document.getElementById('startupSceneBgm');
       const sceneBackground = document.getElementById('startupSceneBackground');
-      const afterFallVideo = document.getElementById('手落下後背景動画');
+      const afterFallVideo = document.getElementById('hand落下後背景動画');
 
       function readHandFallSettings() {
         let settings = { speed: 1, size: 100, distance: 125, x: 75, y: 68, z: 100, rotation: 90, startX: 75, startY: 5, startSize: 100 };
