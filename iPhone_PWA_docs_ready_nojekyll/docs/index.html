@@ -9136,7 +9136,8 @@
         if (event.key === 'Escape' && isShown) hideStartupScene();
       });
 
-      // 起動時の自動開始はしない。落下演出は設定画面のテストボタンからのみ実行する。
+      if (document.readyState === 'complete') scheduleStartupScene();
+      else window.addEventListener('load', scheduleStartupScene, { once: true });
     })();
   </script>
 
@@ -9249,20 +9250,18 @@
     if(label) label.textContent=enabled?'ON':'OFF';
     if(label) label.style.color=enabled?'#63eaff':'#ff6b9d';
     try { localStorage.setItem('handFallEnabled',String(enabled)); } catch(e) {}
+    document.documentElement.classList.toggle('hand-fall-disabled', !enabled);
     const overlay=document.getElementById('startupSceneOverlay');
     const hand=document.getElementById('startupFallingHand');
-    const waitingHand=document.getElementById('startupHandWaitingPreview');
+    const waitingPreview=document.getElementById('startupHandWaitingPreview');
     if(!enabled){
       if(window.__handFallRepeatTimer){clearInterval(window.__handFallRepeatTimer);window.__handFallRepeatTimer=null;}
-      if(hand){hand.classList.remove('is-falling'); hand.style.display='none'; hand.onanimationend=null;}
-      if(waitingHand) waitingHand.style.display='none';
-      if(overlay){
-        overlay.classList.remove('is-visible','is-landed');
-        overlay.setAttribute('aria-hidden','true');
-      }
+      if(hand){hand.classList.remove('is-falling');hand.style.display='none';hand.style.visibility='hidden';hand.style.opacity='0';}
+      if(waitingPreview){waitingPreview.style.display='none';waitingPreview.style.visibility='hidden';waitingPreview.style.opacity='0';}
+      if(overlay) overlay.classList.remove('is-landed');
     } else {
-      if(hand) hand.style.display='';
-      if(waitingHand) waitingHand.style.display='block';
+      if(hand){hand.style.removeProperty('display');hand.style.removeProperty('visibility');hand.style.removeProperty('opacity');}
+      if(waitingPreview){waitingPreview.style.removeProperty('visibility');waitingPreview.style.removeProperty('opacity');}
       startRepeatTimer();
     }
   }
@@ -9286,7 +9285,37 @@
 })();
 </script>
 
+<style id="hand-fall-off-hard-hide-style">
+  /* 手落下演出OFF時は、メイン演出の手と待機位置プレビューの両方を確実に隠す */
+  html.hand-fall-disabled #startupSceneOverlay #startupFallingHand,
+  html.hand-fall-disabled #startupHandWaitingPreview {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    animation: none !important;
+  }
+</style>
 
+<script id="hand-fall-off-initial-state-fix">
+(function(){
+  function apply(){
+    let enabled = true;
+    try { enabled = localStorage.getItem('handFallEnabled') !== 'false'; } catch(e) {}
+    const toggle = document.getElementById('handFallEnabledToggle');
+    if (toggle) enabled = toggle.checked;
+    document.documentElement.classList.toggle('hand-fall-disabled', !enabled);
+    if (!enabled) {
+      const hand = document.getElementById('startupFallingHand');
+      const preview = document.getElementById('startupHandWaitingPreview');
+      if (hand) { hand.classList.remove('is-falling'); hand.style.display='none'; }
+      if (preview) preview.style.display='none';
+      if (window.__handFallRepeatTimer) { clearInterval(window.__handFallRepeatTimer); window.__handFallRepeatTimer=null; }
+    }
+  }
+  apply();
+  document.addEventListener('DOMContentLoaded', apply, {once:true});
+})();
+</script>
 
 <style id="hand-pre-animation-hold-style">
   /* 演出開始前は、待機画面上の指定位置に手を固定表示する */
