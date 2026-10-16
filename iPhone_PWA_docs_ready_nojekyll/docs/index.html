@@ -9136,8 +9136,7 @@
         if (event.key === 'Escape' && isShown) hideStartupScene();
       });
 
-      if (document.readyState === 'complete') scheduleStartupScene();
-      else window.addEventListener('load', scheduleStartupScene, { once: true });
+      // 起動時の自動開始はしない。落下演出は設定画面のテストボタンからのみ実行する。
     })();
   </script>
 
@@ -9250,13 +9249,20 @@
     if(label) label.textContent=enabled?'ON':'OFF';
     if(label) label.style.color=enabled?'#63eaff':'#ff6b9d';
     try { localStorage.setItem('handFallEnabled',String(enabled)); } catch(e) {}
+    const overlay=document.getElementById('startupSceneOverlay');
+    const hand=document.getElementById('startupFallingHand');
+    const waitingHand=document.getElementById('startupHandWaitingPreview');
     if(!enabled){
       if(window.__handFallRepeatTimer){clearInterval(window.__handFallRepeatTimer);window.__handFallRepeatTimer=null;}
-      const overlay=document.getElementById('startupSceneOverlay');
-      const hand=document.getElementById('startupFallingHand');
-      if(hand) hand.classList.remove('is-falling');
-      if(overlay) overlay.classList.remove('is-landed');
+      if(hand){hand.classList.remove('is-falling'); hand.style.display='none'; hand.onanimationend=null;}
+      if(waitingHand) waitingHand.style.display='none';
+      if(overlay){
+        overlay.classList.remove('is-visible','is-landed');
+        overlay.setAttribute('aria-hidden','true');
+      }
     } else {
+      if(hand) hand.style.display='';
+      if(waitingHand) waitingHand.style.display='block';
       startRepeatTimer();
     }
   }
