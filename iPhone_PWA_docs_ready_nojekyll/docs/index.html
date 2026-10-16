@@ -9136,8 +9136,7 @@
         if (event.key === 'Escape' && isShown) hideStartupScene();
       });
 
-      if (document.readyState === 'complete') scheduleStartupScene();
-      else window.addEventListener('load', scheduleStartupScene, { once: true });
+      // 起動直後の自動再生は行わない。手落下演出は設定画面のテストボタン等から手動で再生する。
     })();
   </script>
 
