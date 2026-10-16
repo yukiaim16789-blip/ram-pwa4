@@ -2695,6 +2695,12 @@
       <input type="checkbox" id="animToggle" checked>
     </div>
 
+    <div class="controls-row" style="margin-top: 6px; padding:7px; border:1px solid rgba(120,190,255,.35); border-radius:7px; background:rgba(60,130,200,.08);">
+      <span>⚡ 自動軽量モード（負荷が高い時のみ・目標30 FPS）:</span>
+      <input type="checkbox" id="autoLightModeToggle">
+    </div>
+    <div id="autoLightModeStatus" style="font-size:.75rem;color:#9ecbff;margin:3px 0 6px;">自動軽量モード：OFF</div>
+
     <hr style="border-color: #333; margin: 2px 0;">
 
     <!-- 🖥️ システムモニター・キャラクターリアクション設定 -->
@@ -2955,8 +2961,8 @@
     <label>
       メディアタイプを選択:
       <select id="videoTypeSelect">
-        <option value="none" selected>使用しない</option>
-        <option value="local">ローカル動画ファイル / URL</option>
+        <option value="none">使用しない</option>
+        <option value="local" selected>ローカル動画ファイル / URL</option>
         <option value="youtube">YouTube 動画埋め込み</option>
         <option value="image_local">ローカル画像ファイル</option>
         <option value="image_url">画像URL</option>
@@ -2970,7 +2976,7 @@
       </label>
       <label style="margin-top:4px;">
         動画URLを入力:
-        <input type="text" id="videoUrlInput" placeholder="https://example.com/video.mp4">
+        <input type="text" id="videoUrlInput" value="手落下後背景動画.mp4" placeholder="https://example.com/video.mp4">
       </label>
     </div>
 
@@ -5406,6 +5412,12 @@
     const videoDisplayArea = document.getElementById('videoDisplayArea');
     const localVideoPlayer = document.getElementById('localVideoPlayer');
     const localBgImagePlayer = document.getElementById('localBgImagePlayer');
+
+    // GitHub Pagesのリポジトリ直下に置かれた手落下後背景動画を初期背景として使用します。
+    // 手落下演出の処理や切り替えタイミングには変更を加えません。
+    localVideoPlayer.src = new URL('手落下後背景動画.mp4', window.location.href).href;
+    localVideoPlayer.loop = true;
+    localVideoPlayer.playsInline = true;
 
     let ytVideoPlayer = null;
     let isVideoPlaying = false;
@@ -9097,6 +9109,98 @@
   const observer=new MutationObserver(()=>{ if(overlay.classList.contains('is-landed')) syncStopPosition(); });
   observer.observe(overlay,{attributes:true,attributeFilter:['class']});
   syncStopPosition();
+})();
+</script>
+
+
+<style id="auto-light-mode-style">
+/* 軽量モードは装飾的な処理だけを抑え、キャラクターや重要な演出の表示は維持する */
+html.auto-light-mode *, html.auto-light-mode *::before, html.auto-light-mode *::after {
+  scroll-behavior: auto !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.auto-light-mode video { image-rendering: auto; }
+html.auto-light-mode .particle, html.auto-light-mode .particles,
+html.auto-light-mode [class*="particle"], html.auto-light-mode [class*="sparkle"],
+html.auto-light-mode [class*="confetti"] { display: none !important; }
+</style>
+<script id="auto-light-mode-controller">
+(() => {
+  'use strict';
+  const KEY = 'momonga_auto_light_mode_enabled_v1';
+  const toggle = document.getElementById('autoLightModeToggle');
+  const status = document.getElementById('autoLightModeStatus');
+  if (!toggle || !status) return;
+
+  let enabled = false;
+  try { enabled = localStorage.getItem(KEY) === '1'; } catch (_) {}
+  toggle.checked = enabled;
+
+  let frameCount = 0;
+  let windowStart = 0;
+  let lowFpsWindows = 0;
+  let recoveryWindows = 0;
+  let isReduced = false;
+  let lastStatus = '';
+
+  function setReduced(value, fps) {
+    if (isReduced !== value) {
+      isReduced = value;
+      document.documentElement.classList.toggle('auto-light-mode', value);
+    }
+    const text = !enabled
+      ? '自動軽量モード：OFF'
+      : (isReduced
+        ? `自動軽量モード：作動中（計測FPS 約${Math.round(fps)}）`
+        : `自動軽量モード：待機中（計測FPS 約${Math.round(fps)}）`);
+    if (text !== lastStatus) { status.textContent = text; lastStatus = text; }
+  }
+
+  function tick(now) {
+    if (!windowStart) windowStart = now;
+    frameCount++;
+    const elapsed = now - windowStart;
+    if (elapsed >= 2000) {
+      const fps = frameCount * 1000 / elapsed;
+      if (enabled && document.visibilityState === 'visible') {
+        if (fps < 27) { lowFpsWindows++; recoveryWindows = 0; }
+        else if (fps > 38) { recoveryWindows++; lowFpsWindows = 0; }
+        else { lowFpsWindows = 0; recoveryWindows = 0; }
+        // 2回連続で低FPSを検出した場合に作動し、十分回復したら解除
+        if (lowFpsWindows >= 2) setReduced(true, fps);
+        else if (recoveryWindows >= 3) setReduced(false, fps);
+        else setReduced(isReduced, fps);
+      } else {
+        lowFpsWindows = 0; recoveryWindows = 0;
+        setReduced(false, fps);
+      }
+      frameCount = 0; windowStart = now;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  toggle.addEventListener('change', () => {
+    enabled = toggle.checked;
+    try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch (_) {}
+    lowFpsWindows = 0; recoveryWindows = 0;
+    if (!enabled) {
+      setReduced(false, 0);
+    } else {
+      status.textContent = '自動軽量モード：負荷を測定中…';
+      lastStatus = status.textContent;
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') {
+      lowFpsWindows = 0; recoveryWindows = 0;
+    }
+  });
+  setReduced(false, 0);
+  requestAnimationFrame(tick);
 })();
 </script>
 
