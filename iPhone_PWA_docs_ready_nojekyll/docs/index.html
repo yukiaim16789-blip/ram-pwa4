@@ -180,6 +180,41 @@
       transition: transform 0.12s ease-out;
     }
 
+    /* 👁️ カーソル反応の目：黒目レイヤー（白目は動かさず、黒目だけ動かす） */
+    #part-eye-gaze-iris {
+      --gaze-x: 0px;
+      --gaze-y: 0px;
+      will-change: transform;
+      display: none;
+      transition: transform 0.12s ease-out;
+      pointer-events: none;
+      background: transparent !important;
+      border: 0 !important;
+      outline: 0 !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    .gaze-enabled #part-eye-gaze-iris { display: block !important; }
+
+    /* 👁️ 目パーツ一式を、前髪(hair_2.png)と同じ揺れで動かす（体の動きに追従） */
+    .eye-sway-group {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 20;
+      transform-origin: 50% 30%;
+      animation: hairSway 4.5s infinite ease-in-out;
+      pointer-events: none;
+    }
+    .eye-sway-group > .draggable-part { pointer-events: auto; }
+
+    /* 眠そうな目・閉じ目・まばたき中は、カーソル用の目を隠して二重表示（化け物化）を防ぐ */
+    .gaze-enabled.gaze-sleepy #part-eye-gaze-lid,
+    .gaze-enabled.gaze-sleepy #part-eye-gaze-ball,
+    .gaze-enabled.gaze-sleepy #part-eye-gaze-iris,
+    .gaze-enabled.gaze-blink #part-eye-gaze-lid,
+    .gaze-enabled.gaze-blink #part-eye-gaze-ball,
+    .gaze-enabled.gaze-blink #part-eye-gaze-iris { display: none !important; }
+
     /* 🎵 現在再生中のYouTubeタイトル */
     #currentYoutubeTitle {
       position: fixed;
@@ -2391,7 +2426,8 @@
             <img src="assets/images/hair_2.png" id="part-hair" class="draggable-part" data-key="hair" title="髪" style="z-index: 6;">
             <img src="assets/images/headband_2.png" id="part-headband" class="draggable-part" data-key="headband" title="ヘッドドレス" style="z-index: 7;">
 
-            <!-- 目パーツ (eye_open & eye_close) -->
+            <!-- 目パーツ (eye_open & eye_close) ：髪と同じ揺れ(eye-sway-group)に入れて体の動きに追従 -->
+            <div class="eye-sway-group" id="eyeSwayGroup">
             <img src="assets/images/eye_open.png" id="part-eye" class="draggable-part" data-key="eye" title="目" style="z-index: 20;">
             <img src="assets/images/eye_close.png" id="part-eye-close" class="draggable-part" data-key="eye" title="閉じ目" style="z-index: 21; display: none;">
             <img src="assets/images/Fine-grained.png" id="part-eye-fine" class="draggable-part idle-state-eye" data-key="eye" title="眠そうな目（細め）" style="z-index: 22; display: none;">
@@ -2400,6 +2436,9 @@
             <!-- マウスカーソル反応専用：まぶた＋眼球 -->
             <img src="assets/images/01_まぶた.png" id="part-eye-gaze-lid" class="fixed-part" title="カーソル反応・まぶた" style="z-index: 24; display: none;">
             <img src="assets/images/02_眼球.png" id="part-eye-gaze-ball" class="fixed-part" title="カーソル反応・眼球" style="z-index: 25; display: none;">
+            <!-- 黒目だけの専用レイヤー（02_眼球.png から自動生成。白目は動かさない） -->
+            <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" id="part-eye-gaze-iris" class="fixed-part" title="カーソル反応・黒目" alt="" style="z-index: 26; display: none;">
+            </div>
           </div>
 
           <img src="assets/images/hand_r_2.png" id="part-hand_r" class="draggable-part" data-key="hand_r" title="右手(何も持っていない手)" style="z-index: 8;">
@@ -3746,8 +3785,10 @@
       }
       partEyeOpen.style.display = 'none';
       partEyeClose.style.display = 'block';
+      document.body.classList.add('gaze-blink');   // カーソル反応の目は、まばたき中だけ隠す
       const durMs = (parseFloat(blinkDurationInput.value) || 0.3) * 1000;
       setTimeout(() => {
+        document.body.classList.remove('gaze-blink');
         if (typeof idleState !== 'undefined' && idleState > 0) {
           if (typeof setIdleEyeState === 'function') setIdleEyeState(idleState);
           return;
@@ -6234,21 +6275,41 @@
           closeEl.style.height = `${cfg.scale}%`;
           closeEl.style.transform = `translate(${Number(window.momongaGazeOffsetX) || 0}px, ${Number(window.momongaGazeOffsetY) || 0}px) rotate(${rot}deg)`;
         }
-        ['part-eye-fine','part-eye-half','part-eye-gaze-lid','part-eye-gaze-ball'].forEach(id => {
+        ['part-eye-fine','part-eye-half','part-eye-gaze-lid','part-eye-gaze-ball','part-eye-gaze-iris'].forEach(id => {
           const eyeEl = document.getElementById(id);
           if (eyeEl) {
             eyeEl.style.left = `${cfg.x}px`;
             eyeEl.style.top = `${cfg.y}px`;
             eyeEl.style.width = `${cfg.scale}%`;
             eyeEl.style.height = `${cfg.scale}%`;
-            eyeEl.style.transform = `translate(${Number(window.momongaGazeOffsetX) || 0}px, ${Number(window.momongaGazeOffsetY) || 0}px) rotate(${rot}deg)`;
+            // カーソル反応用の目（まぶた・眼球・黒目）の transform は applyGazeToEyes() が管理する
+            if (id.indexOf('part-eye-gaze') !== 0) {
+              eyeEl.style.transform = `translate(${Number(window.momongaGazeOffsetX) || 0}px, ${Number(window.momongaGazeOffsetY) || 0}px) rotate(${rot}deg)`;
+            }
           }
         });
+        try { if (typeof applyGazeToEyes === 'function') applyGazeToEyes(); } catch (e) { /* 初期化前は無視 */ }
       }
+      if (key === 'eye' || key === 'hair') syncEyeSwayOrigin();
     }
+
+    // 目パーツ一式の揺れの中心を、前髪(hair)の揺れの中心に合わせる（髪と同じ動きになる）
+    function syncEyeSwayOrigin() {
+      const g = document.getElementById('eyeSwayGroup');
+      const hair = document.getElementById('part-hair');
+      if (!g || !hair) return;
+      const w = hair.offsetWidth, h = hair.offsetHeight;
+      if (!w || !h) return;
+      g.style.transformOrigin = `${hair.offsetLeft + w * 0.5}px ${hair.offsetTop + h * 0.3}px`;
+    }
+    window.addEventListener('load', syncEyeSwayOrigin);
+    window.addEventListener('resize', syncEyeSwayOrigin);
+    setTimeout(syncEyeSwayOrigin, 600);
+    setTimeout(syncEyeSwayOrigin, 2500);
 
     function applyAllPartConfigs() {
       Object.keys(partConfigs).forEach(key => applyPartConfig(key));
+      syncEyeSwayOrigin();
     }
 
     function updatePartLockUI() {
@@ -7436,27 +7497,213 @@
       applyGazeToEyes();
     }
 
+    // ------------------------------------------------------------
+    // 👁️ 02_眼球.png を「白目側（動かさない）」と「黒目側（動かす）」に自動で分ける。
+    //   ・黒目だけがカーソルを追う → 白目・まつ毛・輪郭は動かない
+    //   ・黒目は白目の内側に収まる範囲でしか動かない → 目が飛び出して化け物にならない
+    //   画像の読み込みや解析に失敗した場合は、目全体をごくわずかだけ動かす安全動作になる。
+    // ------------------------------------------------------------
+    const gazeIris = { ready: false, failed: false, preparing: false, w: 0, h: 0, pts: null, ok: null };
+
+    function prepareGazeIris() {
+      if (gazeIris.ready || gazeIris.failed || gazeIris.preparing) return;
+      const ball = document.getElementById('part-eye-gaze-ball');
+      const irisEl = document.getElementById('part-eye-gaze-iris');
+      if (!ball || !irisEl) return;
+      if (!ball.complete || !ball.naturalWidth) {
+        ball.addEventListener('load', prepareGazeIris, { once: true });
+        return;
+      }
+      gazeIris.preparing = true;
+      try {
+        const W = ball.naturalWidth, H = ball.naturalHeight, N = W * H;
+        const cv = document.createElement('canvas');
+        cv.width = W; cv.height = H;
+        const ctx = cv.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(ball, 0, 0);
+        const src = ctx.getImageData(0, 0, W, H);        // 取得できない（外部画像等）場合はここで例外
+        const d = src.data;
+
+        // 1) 青い黒目のピクセルを探し、一番大きい塊だけを黒目とする
+        const label = new Int32Array(N);
+        const stack = new Int32Array(N);
+        const isBlue = i => {
+          const o = i * 4, r = d[o], b = d[o + 2];
+          return d[o + 3] > 128 && r < 140 && b > 150 && (b - r) > 60;
+        };
+        let bestId = 0, bestCnt = 0, id = 0;
+        for (let st = 0; st < N; st++) {
+          if (label[st] || !isBlue(st)) continue;
+          id++; let sp = 0, cnt = 0;
+          stack[sp++] = st; label[st] = id;
+          while (sp) {
+            const p = stack[--sp]; cnt++;
+            const x = p % W, y = (p / W) | 0;
+            if (x > 0     && !label[p - 1] && isBlue(p - 1)) { label[p - 1] = id; stack[sp++] = p - 1; }
+            if (x < W - 1 && !label[p + 1] && isBlue(p + 1)) { label[p + 1] = id; stack[sp++] = p + 1; }
+            if (y > 0     && !label[p - W] && isBlue(p - W)) { label[p - W] = id; stack[sp++] = p - W; }
+            if (y < H - 1 && !label[p + W] && isBlue(p + W)) { label[p + W] = id; stack[sp++] = p + W; }
+          }
+          if (cnt > bestCnt) { bestCnt = cnt; bestId = id; }
+        }
+        if (bestCnt < N * 0.03) throw new Error('黒目を検出できませんでした');
+
+        // 2) 行ごとの左右端（瞳・ハイライトの穴も含めて埋める）→ 半径4pxだけ膨らませる（輪郭のにじみも含める）
+        const minX = new Int32Array(H).fill(-1), maxX = new Int32Array(H).fill(-1);
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            if (label[y * W + x] === bestId) { if (minX[y] < 0) minX[y] = x; maxX[y] = x; }
+          }
+        }
+        const EL = new Int32Array(H).fill(-1), ER = new Int32Array(H).fill(-1);
+        const R = 4;
+        for (let y = 0; y < H; y++) {
+          let l = 1e9, r = -1e9;
+          for (let dy = -R; dy <= R; dy++) {
+            const yy = y + dy;
+            if (yy < 0 || yy >= H || minX[yy] < 0) continue;
+            const w = Math.floor(Math.sqrt(R * R - dy * dy));
+            l = Math.min(l, minX[yy] - w); r = Math.max(r, maxX[yy] + w);
+          }
+          if (r >= l) { EL[y] = Math.max(0, l); ER[y] = Math.min(W - 1, r); }
+        }
+
+        // 3) 黒目レイヤー（黒目だけ）と、白目レイヤー（黒目の部分を白目の色で埋めたもの）を作る
+        const irisImg = ctx.createImageData(W, H);
+        const baseImg = ctx.createImageData(W, H);
+        baseImg.data.set(d);
+        const lum = (o) => 0.299 * d[o] + 0.587 * d[o + 1] + 0.114 * d[o + 2];
+        for (let y = 0; y < H; y++) {
+          if (EL[y] < 0) continue;
+          // 黒目の左右すぐ外側の白目の色を拾う
+          const pick = (x0, step) => {
+            let rr = 0, gg = 0, bb = 0, n = 0;
+            for (let k = 0; k < 3; k++) {
+              const x = x0 + step * k;
+              if (x < 0 || x >= W) continue;
+              const o = (y * W + x) * 4;
+              if (lum(o) > 170 && d[o + 3] > 128) { rr += d[o]; gg += d[o + 1]; bb += d[o + 2]; n++; }
+            }
+            return n ? [rr / n, gg / n, bb / n] : null;
+          };
+          let cl = pick(EL[y] - 1, -1), cr = pick(ER[y] + 1, 1);
+          if (!cl && !cr) { cl = cr = [246, 246, 248]; }
+          else if (!cl) cl = cr;
+          else if (!cr) cr = cl;
+          const span = Math.max(1, ER[y] - EL[y]);
+          for (let x = EL[y]; x <= ER[y]; x++) {
+            const o = (y * W + x) * 4, t = (x - EL[y]) / span;
+            irisImg.data[o] = d[o]; irisImg.data[o + 1] = d[o + 1];
+            irisImg.data[o + 2] = d[o + 2]; irisImg.data[o + 3] = d[o + 3];
+            baseImg.data[o]     = cl[0] + (cr[0] - cl[0]) * t;
+            baseImg.data[o + 1] = cl[1] + (cr[1] - cl[1]) * t;
+            baseImg.data[o + 2] = cl[2] + (cr[2] - cl[2]) * t;
+            baseImg.data[o + 3] = 255;
+          }
+        }
+
+        // 4) 「白目の内側」マップ（黒目が動いてよい場所）。1px内側に縮めて余裕を持たせる
+        const bd = baseImg.data;
+        const white = new Uint8Array(N);
+        for (let i = 0; i < N; i++) {
+          const o = i * 4;
+          white[i] = (bd[o + 3] > 200 && bd[o] > 205 && bd[o + 1] > 200 && bd[o + 2] > 205) ? 1 : 0;
+        }
+        const ok = new Uint8Array(N);
+        for (let y = 1; y < H - 1; y++) {
+          for (let x = 1; x < W - 1; x++) {
+            const i = y * W + x;
+            ok[i] = (white[i] && white[i - 1] && white[i + 1] && white[i - W] && white[i + W]) ? 1 : 0;
+          }
+        }
+
+        // 5) 黒目の輪郭の点（動かせる量の判定に使う）
+        const pts = [];
+        let top = -1, bottom = -1;
+        for (let y = 0; y < H; y++) if (EL[y] >= 0) { if (top < 0) top = y; bottom = y; }
+        for (let y = top; y <= bottom; y += 3) { pts.push([EL[y], y], [ER[y], y]); }
+        for (let x = EL[top]; x <= ER[top]; x += 4) pts.push([x, top]);
+        for (let x = EL[bottom]; x <= ER[bottom]; x += 4) pts.push([x, bottom]);
+        // 最初から白目の外にかかっている点（輪郭のにじみ等）は判定から外す
+        const ptsOk = pts.filter(q => ok[q[1] * W + q[0]]);
+
+        // 6) 画像を差し替える（2枚とも読み込めてから同時に反映してチラつきを防ぐ）
+        const put = (imgData) => {
+          const c = document.createElement('canvas'); c.width = W; c.height = H;
+          c.getContext('2d').putImageData(imgData, 0, 0);
+          return c.toDataURL('image/png');
+        };
+        const baseUrl = put(baseImg), irisUrl = put(irisImg);
+        let loaded = 0;
+        const finish = () => {
+          if (++loaded < 2) return;
+          ball.src = baseUrl; irisEl.src = irisUrl;
+          gazeIris.w = W; gazeIris.h = H; gazeIris.pts = ptsOk.length > 20 ? ptsOk : pts; gazeIris.ok = ok;
+          gazeIris.ready = true; gazeIris.preparing = false;
+          applyGazeToEyes();
+        };
+        const t1 = new Image(), t2 = new Image();
+        t1.onload = t2.onload = finish;
+        t1.onerror = t2.onerror = () => { gazeIris.failed = true; gazeIris.preparing = false; };
+        t1.src = baseUrl; t2.src = irisUrl;
+      } catch (e) {
+        gazeIris.failed = true; gazeIris.preparing = false;
+        console.warn('黒目の自動分離に失敗したため、目の動きを最小限にします:', e);
+      }
+    }
+
+    // 黒目を (gx, gy)px（画面上の向き）に動かしたいとき、白目からはみ出さない範囲に収めた量を返す
+    function limitIrisShift(gx, gy, rotDeg, el) {
+      const G = gazeIris;
+      const s = Math.min(el.offsetWidth / G.w, el.offsetHeight / G.h);   // 画像1pxが画面で何pxか
+      if (!(s > 0) || (!gx && !gy)) return [0, 0];
+      const a = -rotDeg * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+      const ix = (gx * c - gy * sn) / s, iy = (gx * sn + gy * c) / s;     // 目の画像上での向きに変換
+      const fits = (t) => {
+        const dx = Math.round(ix * t), dy = Math.round(iy * t);
+        for (let i = 0; i < G.pts.length; i++) {
+          const x = G.pts[i][0] + dx, y = G.pts[i][1] + dy;
+          if (x < 0 || y < 0 || x >= G.w || y >= G.h || !G.ok[y * G.w + x]) return false;
+        }
+        return true;
+      };
+      let t = 1;
+      if (!fits(1)) {
+        let lo = 0, hi = 1;
+        for (let k = 0; k < 8; k++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+        t = lo;
+      }
+      return [ix * t * s, iy * t * s];
+    }
+
     function applyGazeToEyes() {
       const cfg = (typeof partConfigs !== 'undefined' && partConfigs.eye) || {rotate:0};
+      const rot = Number(cfg.rotate) || 0;
       const gx = Number(window.momongaGazeOffsetX) || 0;
       const gy = Number(window.momongaGazeOffsetY) || 0;
       const browX = Number(gazeBrowX?.value) || 0;
       const browY = Number(gazeBrowY?.value) || 0;
 
-      // 通常の目パーツは、マウスカーソル反応OFF時だけ通常どおり動かす
+      // 通常の目（eye_open / 閉じ目 / 細め / 半目）は目全体を動かさない
+      // （動かすのはカーソル反応用の黒目だけ。全体を動かすと目が顔からずれて化け物になるため）
       const ids = ['part-eye', 'part-eye-close', 'part-eye-fine', 'part-eye-half'];
       ids.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-        el.style.setProperty('--gaze-x', `${gx}px`);
-        el.style.setProperty('--gaze-y', `${gy}px`);
-        el.style.transform = `translate(${gx}px, ${gy}px) rotate(${cfg.rotate || 0}deg)`;
+        el.style.setProperty('--gaze-x', '0px');
+        el.style.setProperty('--gaze-y', '0px');
+        el.style.transform = `translate(0px, 0px) rotate(${rot}deg)`;
       });
 
       const gazeOn = !!gazeToggle?.checked;
+      let sleepy = false;
+      try { sleepy = idleState > 0; } catch (e) { /* idleState 初期化前 */ }
+      document.body.classList.toggle('gaze-sleepy', gazeOn && sleepy);
+
       const normalEye = document.getElementById('part-eye');
       const gazeLid = document.getElementById('part-eye-gaze-lid');
       const gazeBall = document.getElementById('part-eye-gaze-ball');
+      const gazeIrisEl = document.getElementById('part-eye-gaze-iris');
 
       if (normalEye) normalEye.style.display = gazeOn ? 'none' : '';
 
@@ -7466,29 +7713,47 @@
         gazeLid.style.display = gazeOn ? 'block' : 'none';
         gazeLid.style.setProperty('--gaze-x', '0px');
         gazeLid.style.setProperty('--gaze-y', '0px');
-        gazeLid.style.transform = `translate(${browX}px, ${browY}px) rotate(${cfg.rotate || 0}deg)`;
+        gazeLid.style.transform = `translate(${browX}px, ${browY}px) rotate(${rot}deg)`;
       }
 
-      // 02_眼球.pngだけがカーソルを追従する。枠線・囲いは追加しない。
+      // 02_眼球.png：白目は固定、黒目だけがカーソルを追従する。枠線・囲いは追加しない。
       if (gazeBall) {
         gazeBall.style.display = gazeOn ? 'block' : 'none';
-        gazeBall.style.setProperty('--gaze-x', `${gx}px`);
-        gazeBall.style.setProperty('--gaze-y', `${gy}px`);
-        gazeBall.style.transform = `translate(${gx}px, ${gy}px) rotate(${cfg.rotate || 0}deg)`;
-        gazeBall.style.border = 'none';
+        gazeBall.style.border = '0';
         gazeBall.style.outline = 'none';
         gazeBall.style.boxShadow = 'none';
         gazeBall.style.filter = 'none';
-        gazeBall.style.outline = 'none';
-        gazeBall.style.border = '0';
+        if (gazeOn) prepareGazeIris();
+
+        if (gazeIris.ready && gazeIrisEl) {
+          const [ox, oy] = gazeOn ? limitIrisShift(gx, gy, rot, gazeBall) : [0, 0];
+          gazeBall.style.setProperty('--gaze-x', '0px');
+          gazeBall.style.setProperty('--gaze-y', '0px');
+          gazeBall.style.transform = `rotate(${rot}deg)`;
+          gazeIrisEl.style.display = gazeOn ? 'block' : 'none';
+          gazeIrisEl.style.setProperty('--gaze-x', `${ox}px`);
+          gazeIrisEl.style.setProperty('--gaze-y', `${oy}px`);
+          gazeIrisEl.style.transform = `rotate(${rot}deg) translate(${ox}px, ${oy}px)`;
+        } else {
+          // 黒目をまだ分離できていない／できなかった場合：目全体を最大2pxだけ動かす安全動作
+          const sx = Math.max(-2, Math.min(2, gx)), sy = Math.max(-2, Math.min(2, gy));
+          gazeBall.style.setProperty('--gaze-x', `${sx}px`);
+          gazeBall.style.setProperty('--gaze-y', `${sy}px`);
+          gazeBall.style.transform = `translate(${sx}px, ${sy}px) rotate(${rot}deg)`;
+        }
       }
     }
 
     function updateGazeFromPointer(clientX, clientY) {
       if (!gazeToggle?.checked || !momongaContainer) { setGazeOffset(0,0); return; }
       const rect = momongaContainer.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height * 0.38;
+      let cx = rect.left + rect.width / 2;
+      let cy = rect.top + rect.height * 0.38;
+      if (gazeFollowToggle.checked) {
+        // 「常に追いかける」時は、顔の中心ではなく実際の目の位置を基準にする
+        const eyeRect = document.getElementById('part-eye-gaze-ball')?.getBoundingClientRect();
+        if (eyeRect && eyeRect.width > 0) { cx = eyeRect.left + eyeRect.width / 2; cy = eyeRect.top + eyeRect.height / 2; }
+      }
       const dx = clientX - cx;
       const dy = clientY - cy;
       const distance = Math.hypot(dx, dy);
@@ -7498,7 +7763,7 @@
         return;
       }
       const strength = Number(gazeStrength.value) || 8;
-      const factor = gazeFollowToggle.checked ? 1 : Math.max(0, 1 - distance / maxDistance);
+      const factor = gazeFollowToggle.checked ? (() => { const f = Math.min(1, distance / 120); return f * f * (3 - 2 * f); })() : Math.max(0, 1 - distance / maxDistance);
       const nx = distance > 0 ? dx / Math.max(distance, 1) : 0;
       const ny = distance > 0 ? dy / Math.max(distance, 1) : 0;
       setGazeOffset(nx * strength * factor, ny * strength * factor * 0.75);
@@ -8029,6 +8294,7 @@
       const names = ['通常','細め','半目','閉じ目'];
       if (idleStateStatus) idleStateStatus.textContent = `現在の状態：${names[idleState]}`;
       syncIdleEyePositions();
+      try { if (typeof applyGazeToEyes === 'function') applyGazeToEyes(); } catch (e) {}
       updateIdleEffects();
 
       if (!suppressSurprise && previousState !== 3 && idleState === 3) {
