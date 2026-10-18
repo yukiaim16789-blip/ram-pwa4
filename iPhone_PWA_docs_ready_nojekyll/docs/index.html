@@ -696,6 +696,16 @@
       transform-origin: center center;
     }
 
+    /* びっくり目を包むラッパー（びっくり演出の枠と同じ大きさ。動きは通常の目と同じ） */
+    .strong-eye-follow-head,
+    .strong-eye-follow-hair {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .strong-eye-follow-head { z-index: 30; animation: headTilt 6s infinite ease-in-out; }
+    .strong-eye-follow-hair { animation: hairSway 4.5s infinite ease-in-out; }
+
     /* 01_.png：びっくり時の右目。元の目より大きくして顔の右側へ */
     .strong-reaction-eye {
       left: 48%;
@@ -2450,7 +2460,10 @@
           <!-- 😲 強い口調（「おい」など）に反応するびっくり演出。
                応答音声が終わると自動的に非表示に戻ります。 -->
           <div class="strong-tone-reaction" id="strongToneReaction" aria-hidden="true">
-            <img class="strong-reaction-eye" id="strongReactionEye" src="assets/images/01_.png" alt="">
+            <!-- びっくり目：頭の傾き＋髪の揺れと同じ動きをさせて、髪の分け目の中心から動かさない -->
+            <div class="strong-eye-follow-head" id="strongEyeFollowHead"><div class="strong-eye-follow-hair" id="strongEyeFollowHair">
+              <img class="strong-reaction-eye" id="strongReactionEye" src="assets/images/01_.png" alt="">
+            </div></div>
             <img class="strong-reaction-sweat-left" id="strongReactionSweatLeft" src="assets/images/04_.png" alt="">
             <img class="strong-reaction-mark" id="strongReactionMark" src="assets/images/05_.png" alt="">
             <img class="strong-reaction-lightning-top" id="strongReactionLightningTop" src="assets/images/06_.png" alt="">
@@ -3468,6 +3481,39 @@
       return strongTonePatterns.some(pattern => pattern.test(normalized));
     }
 
+    // びっくり目を、頭(headTilt)と髪(hairSway)の動きに完全に同期させる。
+    // 揺れの中心を頭・髪と同じ位置に合わせ、アニメーションの進み具合も同じにする。
+    function syncStrongEyeFollow() {
+      try {
+        const reaction = document.getElementById('strongToneReaction');
+        const head = document.getElementById('strongEyeFollowHead');
+        const hair = document.getElementById('strongEyeFollowHair');
+        const cont = document.getElementById('momongaContainer');
+        const group = cont && cont.querySelector('.anim-head-group');
+        const sway = document.getElementById('eyeSwayGroup');
+        if (!reaction || !head || !hair || !cont || !group) return;
+        if (getComputedStyle(reaction).display === 'none') return;   // 表示されている間だけ
+        const L = reaction.offsetLeft, T = reaction.offsetTop;       // 演出の枠は本体より一回り大きい
+        head.style.transformOrigin = `${cont.offsetWidth * 0.5 - L}px ${cont.offsetHeight * 0.6 - T}px`;
+        if (sway) {
+          const o = getComputedStyle(sway).transformOrigin.split(' ').map(parseFloat);
+          if (o.length === 2 && o.every(Number.isFinite)) hair.style.transformOrigin = `${o[0] - L}px ${o[1] - T}px`;
+        }
+        const find = (el, name) => el.getAnimations().find(a => a.animationName === name);
+        [[head, group, 'headTilt'], [hair, sway, 'hairSway']].forEach(([w, src, name]) => {
+          if (!src) return;
+          const a = find(w, name), b = find(src, name);
+          if (a && b && b.currentTime != null) a.currentTime = b.currentTime;
+        });
+      } catch (e) { /* 同期できなくても表示は続ける */ }
+    }
+    (function watchStrongEyeFollow() {
+      const reaction = document.getElementById('strongToneReaction');
+      if (!reaction || typeof MutationObserver === 'undefined') return;
+      new MutationObserver(() => requestAnimationFrame(syncStrongEyeFollow))
+        .observe(reaction, { attributes: true, attributeFilter: ['class'] });
+    })();
+
     function startStrongToneReaction(durationMs = 1500) {
       if (!strongToneReaction) return;
 
@@ -3478,6 +3524,7 @@
       strongToneReaction.classList.add('is-active');
       strongToneReaction.setAttribute('aria-hidden', 'false');
       momongaContainer.classList.add('strong-reaction-eye-active');
+      syncStrongEyeFollow();
 
       strongToneReactionTimer = setTimeout(() => {
         if (token !== strongToneReactionToken) return;
@@ -6301,6 +6348,7 @@
       const w = hair.offsetWidth, h = hair.offsetHeight;
       if (!w || !h) return;
       g.style.transformOrigin = `${hair.offsetLeft + w * 0.5}px ${hair.offsetTop + h * 0.3}px`;
+      try { if (typeof syncStrongEyeFollow === 'function') syncStrongEyeFollow(); } catch (e) {}
     }
     window.addEventListener('load', syncEyeSwayOrigin);
     window.addEventListener('resize', syncEyeSwayOrigin);
