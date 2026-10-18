@@ -2284,15 +2284,17 @@
       cursor: grab; touch-action: none; user-select: none; -webkit-user-drag: none;
       filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .28));
     }
+    /* 落下速度の設定（--hand-fall-duration）が、そのまま「上から下へ落ちる時間」になるようにする。
+       以前は急減速するイージングで、数秒に設定しても最初の1秒ほどで落ちきってしまっていた。
+       今は落下全体の約86%の時間をかけてゆっくり一定に近い速さで落ち、残りで着地の小さな弾みを付ける。 */
     #startupSceneOverlay #startupFallingHand.is-falling {
       opacity: 1;
-      animation: startupHandFall var(--hand-fall-duration, 900ms) cubic-bezier(.20, .72, .28, 1) both;
+      animation: startupHandFall var(--hand-fall-duration, 900ms) linear both;
     }
     @keyframes startupHandFall {
-      0% { left: var(--hand-start-x, 75%); top: var(--hand-start-y, 5%); width: min(62vw, 760px); opacity: 1; transform: translate(-50%,-50%) rotate(-5deg) scale(var(--hand-start-size,1)); }
-      8% { opacity: 1; }
-      70% { left: var(--hand-x,75%); top: calc(var(--hand-y,68%) + 2vh); transform: translate(-50%,-50%) rotate(var(--hand-rotation-end,162deg)) scale(var(--hand-size,1)); }
-      84% { left: var(--hand-x,75%); top: calc(var(--hand-y,68%) - 1.2vh); transform: translate(-50%,-50%) rotate(calc(var(--hand-rotation-end,162deg) + 3deg)) scale(var(--hand-size,1)); }
+      0% { left: var(--hand-start-x, 75%); top: var(--hand-start-y, 5%); width: min(62vw, 760px); opacity: 1; transform: translate(-50%,-50%) rotate(-5deg) scale(var(--hand-start-size,1)); animation-timing-function: cubic-bezier(.35, .1, .6, 1); }
+      86% { left: var(--hand-x,75%); top: calc(var(--hand-y,68%) + 2vh); transform: translate(-50%,-50%) rotate(var(--hand-rotation-end,162deg)) scale(var(--hand-size,1)); animation-timing-function: ease-out; }
+      93% { left: var(--hand-x,75%); top: calc(var(--hand-y,68%) - 1.2vh); transform: translate(-50%,-50%) rotate(calc(var(--hand-rotation-end,162deg) + 3deg)) scale(var(--hand-size,1)); animation-timing-function: ease-in-out; }
       100% { left: var(--hand-x,75%); top: var(--hand-y,68%); opacity: 1; transform: translate(-50%,-50%) rotate(var(--hand-rotation-end,162deg)) scale(var(--hand-size,1)); }
     }
     @media (max-width: 600px) {
@@ -9541,7 +9543,7 @@
  function values(){const rect=stage.getBoundingClientRect();return {sx:clamp(num(startX,75),0,100)/100*rect.width,sy:clamp(num(startY,5),0,100)/100*rect.height,ex:clamp(num(endX,75),0,100)/100*rect.width,ey:clamp(num(endY,68),0,100)/100*rect.height,ss:clamp(num(startSize,100),10,200)/100,es:clamp(num(endSize,100),10,200)/100*(clamp(num(z,100),30,200)/100),duration:clamp(num(speed,1),1,100)*1000};}
  let animation=null;
  function placeAtEnd(){const v=values();if(animation){animation.cancel();animation=null;}img.style.left=v.ex+'px';img.style.top=v.ey+'px';img.style.width=(100*v.es)+'px';img.style.height=(100*v.es)+'px';img.style.opacity='1';getImage();}
- function run(){const v=values();getImage();if(animation){animation.cancel();animation=null;}img.style.left=v.sx+'px';img.style.top=v.sy+'px';img.style.width=(100*v.ss)+'px';img.style.height=(100*v.ss)+'px';img.style.opacity='1';const keyframes=[{left:v.sx+'px',top:v.sy+'px',width:(100*v.ss)+'px',height:(100*v.ss)+'px',transform:'translate(-50%,-50%) rotate(-5deg)'},{left:v.ex+'px',top:v.ey+'px',width:(100*v.es)+'px',height:(100*v.es)+'px',transform:'translate(-50%,-50%) rotate(0deg)'}];animation=img.animate(keyframes,{duration:v.duration,easing:'cubic-bezier(.2,.72,.28,1)',fill:'forwards'});animation.onfinish=()=>{img.style.left=v.ex+'px';img.style.top=v.ey+'px';img.style.width=(100*v.es)+'px';img.style.height=(100*v.es)+'px';img.style.transform='translate(-50%,-50%)';animation=null;};}
+ function run(){const v=values();getImage();if(animation){animation.cancel();animation=null;}img.style.left=v.sx+'px';img.style.top=v.sy+'px';img.style.width=(100*v.ss)+'px';img.style.height=(100*v.ss)+'px';img.style.opacity='1';const keyframes=[{left:v.sx+'px',top:v.sy+'px',width:(100*v.ss)+'px',height:(100*v.ss)+'px',transform:'translate(-50%,-50%) rotate(-5deg)'},{left:v.ex+'px',top:v.ey+'px',width:(100*v.es)+'px',height:(100*v.es)+'px',transform:'translate(-50%,-50%) rotate(0deg)'}];animation=img.animate(keyframes,{duration:v.duration,easing:'cubic-bezier(.35,.1,.6,1)',fill:'forwards'});animation.onfinish=()=>{img.style.left=v.ex+'px';img.style.top=v.ey+'px';img.style.width=(100*v.es)+'px';img.style.height=(100*v.es)+'px';img.style.transform='translate(-50%,-50%)';animation=null;};}
  play.addEventListener('click',run);reset.addEventListener('click',placeAtEnd);
  [startX,startY,startSize,endX,endY,endSize,z,speed].filter(Boolean).forEach(el=>el.addEventListener('input',()=>{if(!animation) placeAtEnd();}));
  window.addEventListener('resize',()=>{if(!animation)placeAtEnd();});getImage();placeAtEnd();
